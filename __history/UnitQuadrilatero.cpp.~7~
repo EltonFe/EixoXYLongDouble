@@ -1,0 +1,209 @@
+//---------------------------------------------------------------------------
+
+#pragma hdrstop
+
+#include "UnitQuadrilatero.h"
+#include <malloc.h>
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+
+
+
+
+long double  *TQuadrilatero::RealocarQuadrilatero(long double *Ponteiro,int Tamanho){
+int i=0;
+long double *TmpPonteiro=0;
+TmpPonteiro=Ponteiro;
+   do{
+
+		Ponteiro=(long double*) realloc(Ponteiro,Tamanho*sizeof(long double));
+		if(Ponteiro!=NULL){
+
+			return Ponteiro;
+		}else{
+				Ponteiro=0;
+				Ponteiro=TmpPonteiro;
+				i++;
+			}
+   }while(i<0);
+
+   return NULL;
+
+}
+
+TQuadrilatero::TQuadrilatero(){
+		MAlpha=0;
+		MVetor=0;
+		MAlpha2=0;
+		MVetor2=0;
+
+
+
+}
+void TQuadrilatero::AlocarQuadrilatero(int Tam){
+
+
+	this->MAlpha=(long double*) malloc(Tam*sizeof(long double));
+	MVetor=RealocarQuadrilatero(MVetor,Tam);
+	MAlpha2=RealocarQuadrilatero(MAlpha2,Tam);
+	MVetor2=RealocarQuadrilatero(MVetor2,Tam);
+	LAlpha=RealocarQuadrilatero(LAlpha,Tam);
+	LVetor=RealocarQuadrilatero(LVetor,Tam);
+	LAlpha2=RealocarQuadrilatero(LAlpha2,Tam);
+	LVetor2=RealocarQuadrilatero(LVetor2,Tam);
+
+	MZo=RealocarQuadrilatero(MZo,Tam);
+	LZo=RealocarQuadrilatero(LZo,Tam);
+	MZo2=RealocarQuadrilatero(MZo2,Tam);
+	LZo2=RealocarQuadrilatero(LZo2,Tam);
+
+
+}
+
+void TQuadrilatero::SetMAlpha(long double MA,int Index){
+
+MAlpha[Index]=MA;
+}
+
+
+long double TQuadrilatero::GetMAlpha(int Index)const{
+
+return MAlpha[Index];
+
+}
+
+void TQuadrilatero::SetMVetor(long double MV,int Index){
+
+ MVetor[Index]=MV;
+}
+long double TQuadrilatero::GetMVetor(int Index) const{
+
+	return MVetor[Index];
+
+}
+
+
+void TQuadrilatero::SetMAlpha2(long double MA2,int Index){
+
+MAlpha2[Index]=MA2;
+
+}
+
+
+long double  TQuadrilatero::GetMAlpha2(int Index)const{
+
+	return MAlpha2[Index];
+
+
+}
+
+void TQuadrilatero::SetMVetor2(long double MV2,int Index){
+
+MVetor2[Index]=MV2;
+
+}
+
+long double TQuadrilatero::GetMVetor2(int Index)const{
+
+	return MVetor2[Index];
+
+}
+
+
+void TQuadrilatero::SetLAlpha(long double LA,int Index){
+
+LAlpha[Index]=LA;
+}
+
+
+long double TQuadrilatero::GetLAlpha(int Index)const{
+
+	return LAlpha[Index];
+
+}
+
+void TQuadrilatero::SetLVetor(long double LV,int Index){
+
+LVetor[Index]=LV;
+
+}
+
+long double TQuadrilatero::GetLVetor(int Index)const{
+
+	return LVetor[Index];
+
+}
+
+void TQuadrilatero::SetLAlpha2(long double LA2,int Index){
+
+LAlpha2[Index]=LA2;
+}
+
+long double TQuadrilatero::GetLAlpha2(int Index)const{
+
+	return LAlpha2[Index];
+
+}
+
+void TQuadrilatero::SetLVetor2(long double LV2,int Index){
+
+	LVetor2[Index]=LV2;
+
+}
+
+
+long double TQuadrilatero::GetLVetor2(int Index)const{
+
+	return LVetor2[Index];
+
+}
+
+void TQuadrilatero::SetContadorQuadrilatero(int Contador){
+
+	ContadorQuadrilatero=Contador;
+}
+int TQuadrilatero::GetContadorQuadrilatero()const{
+
+	return ContadorQuadrilatero;
+
+}
+
+void TQuadrilatero::SetMZo(long double MZ,int Index){
+
+	MZo[Index]=MZ;
+}
+
+long double TQuadrilatero::GetMZo(int Index)const{
+	return MZo[Index];
+}
+
+void TQuadrilatero::SetLZo(long double LZ, int Index){
+
+	LZo[Index]=LZ;
+}
+
+long double TQuadrilatero::GetLZo(int Index)const{
+	return  LZo[Index];
+
+}
+
+
+
+void TQuadrilatero::SetMZo2(long double MZ2,int Index){
+
+	MZo2[Index]=MZ2;
+}
+
+long double TQuadrilatero::GetMZo2(int Index)const{
+	return MZo2[Index];
+}
+
+void TQuadrilatero::SetLZo2(long double LZ2, int Index){
+
+	LZo2[Index]=LZ2;
+}
+
+long double TQuadrilatero::GetLZo2(int Index)const{
+	return  LZo2[Index];
+
+}

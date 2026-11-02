@@ -1,0 +1,106 @@
+//---------------------------------------------------------------------------
+// Matriz.h - matriz Linhas x Colunas guardada em std::vector.
+//
+// Substitui os T** montados com realloc (FullMLK, MP1, P_Circle...). A memoria
+// e liberada sozinha e o conteudo das linhas antigas e mantido quando a matriz
+// cresce. Ponteiros() devolve um T** para o codigo que usa M[i][j]; ele vale
+// ate o proximo Redimensiona da mesma matriz.
+//---------------------------------------------------------------------------
+
+#ifndef MatrizH
+#define MatrizH
+
+#include <vector>
+#include <algorithm>
+
+// Copia para V os V.size() valores de Ptr (usado pelos Set...(ponteiro) das
+// classes: antes eles guardavam o ponteiro, agora copiam o conteudo)
+template<class T>
+void CopiaVetor(std::vector<T> &V,const T *Ptr){
+
+	if(Ptr!=0)
+		std::copy(Ptr,Ptr+V.size(),V.begin());
+}
+
+// Le V[Index]. Fora do vetor devolve 0 em vez de ler memoria invalida
+template<class T>
+T LerVetor(const std::vector<T> &V,int Index){
+
+	if(Index<0 || (size_t)Index>=V.size())
+		return T();
+
+	return V[Index];
+}
+
+// Grava V[Index]. Se Index passar do fim o vetor cresce (posicoes novas = 0);
+// indice negativo e ignorado
+template<class T,class U>
+void GravarVetor(std::vector<T> &V,int Index,U Valor){
+
+	if(Index<0)
+		return;
+
+	if((size_t)Index>=V.size())
+		V.resize((size_t)Index+1);
+
+	V[Index]=(T)Valor;
+}
+
+template<class T>
+class Matriz{
+
+	private:
+	std::vector<T> Dados;			// Linhas*Colunas elementos seguidos
+	std::vector<T*> Linhas;			// inicio de cada linha dentro de Dados
+	int Colunas;
+
+	public:
+
+	Matriz():Colunas(0){}
+
+	// Muda o numero de linhas (e de colunas) e devolve o T** atualizado
+	T **Redimensiona(int NumLinhas,int NumColunas){
+
+		if(NumLinhas<0)
+			NumLinhas=0;
+
+		if(NumColunas!=Colunas){
+			Dados.clear();
+			Colunas=NumColunas;
+		}
+
+		Dados.resize((size_t)NumLinhas*Colunas);
+		Linhas.resize(NumLinhas);
+
+		for(int i=0;i<NumLinhas;i++)
+			Linhas[i]=Dados.data()+(size_t)i*Colunas;
+
+		return Ponteiros();
+	}
+
+	T **Ponteiros(){
+
+		if(Linhas.empty())
+			return 0;
+
+		return Linhas.data();
+	}
+
+	T *operator[](int Linha){
+
+		return Linhas[Linha];
+	}
+
+	bool LinhaValida(int Linha)const{
+
+		return Linha>=0 && Linha<(int)Linhas.size();
+	}
+
+	int GetLinhas()const{
+
+		return (int)Linhas.size();
+	}
+
+};
+
+#endif

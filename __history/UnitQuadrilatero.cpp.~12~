@@ -1,0 +1,400 @@
+//---------------------------------------------------------------------------
+
+#pragma hdrstop
+
+#include "UnitQuadrilatero.h"
+
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+
+
+
+
+long double  *TQuadrilatero::RealocarQuadrilatero(long double *Ponteiro,int Tamanho){
+int i=0;
+long double *TmpPonteiro=0;
+TmpPonteiro=Ponteiro;
+   do{
+
+		Ponteiro=(long double*) realloc(Ponteiro,Tamanho*sizeof(long double));
+		if(Ponteiro!=NULL){
+
+			return Ponteiro;
+		}else{
+				Ponteiro=0;
+				Ponteiro=TmpPonteiro;
+				i++;
+			}
+   }while(i<0);
+
+   return NULL;
+
+}
+
+unsigned int  *TQuadrilatero::RealocarQuadrilatero(unsigned int *Ponteiro,int Tamanho){
+int i=0;
+unsigned int *TmpPonteiro=0;
+TmpPonteiro=Ponteiro;
+   do{
+
+		Ponteiro=(unsigned int*) realloc(Ponteiro,Tamanho*sizeof(unsigned int));
+		if(Ponteiro!=NULL){
+
+			return Ponteiro;
+		}else{
+				Ponteiro=0;
+				Ponteiro=TmpPonteiro;
+				i++;
+			}
+   }while(i<0);
+
+   return NULL;
+
+}
+
+TQuadrilatero::TQuadrilatero():ContadorQuadrilatero(0){
+		MAlpha=0;
+		MVetor=0;
+		MAlpha2=0;
+		MVetor2=0;
+		LAlpha=0;
+		LVetor=0;
+		LAlpha2=0;
+		LVetor2=0;
+		MZo=0;
+		LZo=0;
+		MZo2=0;
+		LZo2=0;
+		Cor_Quadrilatero=0;
+
+}
+void TQuadrilatero::AlocarQuadrilatero(int Tam){
+
+
+
+	MAlpha=RealocarQuadrilatero(MAlpha,Tam);
+	MVetor=RealocarQuadrilatero(MVetor,Tam);
+	MAlpha2=RealocarQuadrilatero(MAlpha2,Tam);
+	MVetor2=RealocarQuadrilatero(MVetor2,Tam);
+	LAlpha=RealocarQuadrilatero(LAlpha,Tam);
+	LVetor=RealocarQuadrilatero(LVetor,Tam);
+	LAlpha2=RealocarQuadrilatero(LAlpha2,Tam);
+	LVetor2=RealocarQuadrilatero(LVetor2,Tam);
+
+	MZo=RealocarQuadrilatero(MZo,Tam);
+	LZo=RealocarQuadrilatero(LZo,Tam);
+	MZo2=RealocarQuadrilatero(MZo2,Tam);
+	LZo2=RealocarQuadrilatero(LZo2,Tam);
+	Cor_Quadrilatero=RealocarQuadrilatero(Cor_Quadrilatero,Tam);
+
+}
+
+
+void TQuadrilatero::SetCor(unsigned int Cor,int index){
+
+	Cor_Quadrilatero[index]=Cor;
+
+}
+void TQuadrilatero::SetCor(unsigned int *Cor){
+
+	Cor_Quadrilatero=Cor;
+
+}
+
+unsigned int TQuadrilatero::GetCor(int index)const{
+
+	return Cor_Quadrilatero[index];
+
+}
+
+unsigned int *TQuadrilatero::GetCor()const{
+
+	return Cor_Quadrilatero;
+
+}
+
+
+void TQuadrilatero::SetMAlpha(long double MA,int Index){
+
+MAlpha[Index]=MA;
+}
+
+void TQuadrilatero::SetMAlpha(long double *MA){
+	MAlpha=MA;
+}
+
+
+long double TQuadrilatero::GetMAlpha(int Index)const{
+
+return MAlpha[Index];
+
+}
+
+long double * TQuadrilatero::GetMAlpha()const{
+
+	return MAlpha;
+}
+
+
+void TQuadrilatero::SetMVetor(long double MV,int Index){
+
+ MVetor[Index]=MV;
+}
+
+void TQuadrilatero::SetMVetor(long double *MV){
+
+	MVetor=MV;
+
+}
+
+
+long double TQuadrilatero::GetMVetor(int Index) const{
+
+	return MVetor[Index];
+
+}
+
+long double * TQuadrilatero::GetMVetor()const{
+
+	return MVetor;
+
+}
+
+
+void TQuadrilatero::SetMAlpha2(long double MA2,int Index){
+
+MAlpha2[Index]=MA2;
+
+}
+
+void TQuadrilatero::SetMAlpha2(long double *MA2){
+
+	MAlpha2=MA2;
+
+}
+
+
+long double  TQuadrilatero::GetMAlpha2(int Index)const{
+
+	return MAlpha2[Index];
+
+
+}
+
+long double  *TQuadrilatero::GetMAlpha2()const{
+
+	return MAlpha2;
+
+
+}
+
+void TQuadrilatero::SetMVetor2(long double MV2,int Index){
+
+MVetor2[Index]=MV2;
+
+}
+
+void TQuadrilatero::SetMVetor2(long double *MV2){
+
+MVetor2=MV2;
+
+}
+
+long double TQuadrilatero::GetMVetor2(int Index)const{
+
+	return MVetor2[Index];
+
+}
+long double *TQuadrilatero::GetMVetor2()const{
+
+	return MVetor2;
+
+}
+
+
+void TQuadrilatero::SetLAlpha(long double LA,int Index){
+
+LAlpha[Index]=LA;
+}
+
+void TQuadrilatero::SetLAlpha(long double *LA){
+
+LAlpha=LA;
+}
+
+
+long double TQuadrilatero::GetLAlpha(int Index)const{
+
+	return LAlpha[Index];
+
+}
+
+long double *TQuadrilatero::GetLAlpha()const{
+
+	return LAlpha;
+
+}
+
+void TQuadrilatero::SetLVetor(long double LV,int Index){
+
+LVetor[Index]=LV;
+
+}
+
+void TQuadrilatero::SetLVetor(long double *LV){
+
+LVetor=LV;
+
+}
+
+long double TQuadrilatero::GetLVetor(int Index)const{
+
+	return LVetor[Index];
+
+}
+
+long double *TQuadrilatero::GetLVetor()const{
+
+	return LVetor;
+
+}
+
+void TQuadrilatero::SetLAlpha2(long double LA2,int Index){
+
+LAlpha2[Index]=LA2;
+}
+
+void TQuadrilatero::SetLAlpha2(long double *LA2){
+
+LAlpha2=LA2;
+}
+
+long double TQuadrilatero::GetLAlpha2(int Index)const{
+
+	return LAlpha2[Index];
+
+}
+
+long double *TQuadrilatero::GetLAlpha2()const{
+
+	return LAlpha2;
+
+}
+
+void TQuadrilatero::SetLVetor2(long double LV2,int Index){
+
+	LVetor2[Index]=LV2;
+
+}
+
+void TQuadrilatero::SetLVetor2(long double *LV2){
+
+	LVetor2=LV2;
+
+}
+
+
+long double TQuadrilatero::GetLVetor2(int Index)const{
+
+	return LVetor2[Index];
+
+}
+
+long double *TQuadrilatero::GetLVetor2()const{
+
+	return LVetor2;
+
+}
+
+void TQuadrilatero::SetContadorQuadrilatero(int Contador){
+
+	ContadorQuadrilatero=Contador;
+}
+int TQuadrilatero::GetContadorQuadrilatero()const{
+
+	return ContadorQuadrilatero;
+
+}
+
+void TQuadrilatero::SetMZo(long double MZ,int Index){
+
+	MZo[Index]=MZ;
+}
+
+void TQuadrilatero::SetMZo(long double *MZ){
+
+	MZo=MZ;
+}
+
+long double TQuadrilatero::GetMZo(int Index)const{
+	return MZo[Index];
+}
+
+
+
+long double *TQuadrilatero::GetMZo()const{
+	return MZo;
+}
+
+
+void TQuadrilatero::SetLZo(long double LZ, int Index){
+
+	LZo[Index]=LZ;
+}
+
+void TQuadrilatero::SetLZo(long double *LZ){
+
+	LZo=LZ;
+}
+
+
+
+long double TQuadrilatero::GetLZo(int Index)const{
+	return  LZo[Index];
+
+}
+long double *TQuadrilatero::GetLZo()const{
+	return  LZo;
+
+}
+
+
+
+void TQuadrilatero::SetMZo2(long double MZ2,int Index){
+
+	MZo2[Index]=MZ2;
+}
+
+void TQuadrilatero::SetMZo2(long double *MZ2){
+
+	MZo2=MZ2;
+}
+
+
+long double TQuadrilatero::GetMZo2(int Index)const{
+	return MZo2[Index];
+}
+
+long double *TQuadrilatero::GetMZo2()const{
+	return MZo2;
+}
+
+void TQuadrilatero::SetLZo2(long double LZ2, int Index){
+
+	LZo2[Index]=LZ2;
+}
+
+void TQuadrilatero::SetLZo2(long double *LZ2){
+
+	LZo2=LZ2;
+}
+
+long double TQuadrilatero::GetLZo2(int Index)const{
+	return  LZo2[Index];
+
+}
+
+long double *TQuadrilatero::GetLZo2()const{
+	return  LZo2;
+
+}

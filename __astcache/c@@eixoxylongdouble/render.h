@@ -1,0 +1,76 @@
+﻿//---------------------------------------------------------------------------
+
+#ifndef RenderH
+#define RenderH
+//---------------------------------------------------------------------------
+#include <System.Classes.hpp>
+#include <Vcl.Controls.hpp>
+#include <Vcl.StdCtrls.hpp>
+#include <Vcl.Forms.hpp>
+#include <Vcl.ExtCtrls.hpp>
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+#include "Arquivo.h"
+using Name_Arquivos::Objetos;
+using Name_Arquivos::Line;
+using Name_Arquivos::Arquivo;
+
+//---------------------------------------------------------------------------
+class TForm1 : public TForm
+{
+__published:	// IDE-managed Components
+	TTimer *Timer1;
+	TButton *Button1;
+	TButton *Button2;
+	TButton *Button3;
+	TRadioGroup *RadioGroup1;
+	TRadioButton *RB2D;
+	TRadioButton *RB3D;
+	void __fastcall FormPaint(TObject *Sender);
+	void __fastcall FormResize(TObject *Sender);
+
+
+	void __fastcall FormMouseWheelUp(TObject *Sender, TShiftState Shift, TPoint &MousePos,
+		  bool &Handled);
+	void __fastcall FormMouseWheelDown(TObject *Sender, TShiftState Shift, TPoint &MousePos,
+		  bool &Handled);
+	void __fastcall FormDestroy(TObject *Sender);
+	void __fastcall Timer1Timer(TObject *Sender);
+	void __fastcall Button1Click(TObject *Sender);
+	void __fastcall Button2Click(TObject *Sender);
+	void __fastcall Button3Click(TObject *Sender);
+	void __fastcall RB3DClick(TObject *Sender);
+private:	// User declarations
+public:		// User declarations
+	__fastcall TForm1(TComponent* Owner);
+    int     xs,ys;
+    HDC     hdc;            // device context
+    HGLRC   hrc;            // rendering context
+    int  ogl_inicialized;
+	int  ogl_init();
+	void ogl_exit();
+	void ogl_draw();
+	void ogl_resize();
+	float P1[10][3],P2[10][3],P3[10][3],P4[10][3];
+    bool Lancar;
+	void Draw_Lines_Direct_Render(TCanvas *Plano,Objetos *Objetos_Atr, int **FullMLK);
+	void Draw_Lines_Direct_RenderQuadrilatero(TCanvas *Plano,Objetos *Objetos_Atr, int **FullMLK,int **FullMLK3);
+	void DrawDirect_RenderQuadrilateroSolid(Objetos *Objetos_Atr,int **FullMLK,int **FullMLK3);
+	void DrawDirect(Objetos *Objetos_Atr);
+	static void MoveTo(int x,int y);
+	static void LineTo(int x,int y);
+	float Kx;
+	float Ky;
+	float t;
+	glm::vec4 Vetor1[10],Vetor2[10],Vetor3[10],Vetor4[10];
+
+	void Lancamento();
+	glm::vec4 Rotaciona(float Angulo,float x,float y,float z);
+	void RotacionaDesenho(Objetos *Objetos_Atr);
+	glm::mat4 Rotate;
+    float Angulo;
+};
+//---------------------------------------------------------------------------
+extern PACKAGE TForm1 *Form1;
+//---------------------------------------------------------------------------
+#endif

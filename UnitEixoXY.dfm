@@ -1,0 +1,363 @@
+object EixoXY: TEixoXY
+  Left = 0
+  Top = 154
+  Cursor = crCross
+  Caption = 'EixoXY'
+  ClientHeight = 723
+  ClientWidth = 1842
+  Color = clWhite
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -16
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  KeyPreview = True
+  Menu = MainMenu1
+  PopupMenu = PMEixoXY
+  Position = poDesigned
+  WindowState = wsMaximized
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  OnMouseDown = FormMouseDown
+  OnMouseMove = FormMouseMove
+  TextHeight = 19
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 1842
+    Height = 155
+    Align = alTop
+    Caption = 'Panel1'
+    ShowCaption = False
+    TabOrder = 0
+    object Panel3: TPanel
+      Left = 248
+      Top = 7
+      Width = 145
+      Height = 131
+      Caption = 'Panel3'
+      ShowCaption = False
+      TabOrder = 0
+      object ButtonEixo_Zo: TButton
+        Left = 32
+        Top = 5
+        Width = 102
+        Height = 37
+        Caption = 'EixoZo'
+        Default = True
+        Style = bsCommandLink
+        TabOrder = 0
+        OnClick = ButtonEixo_ZoClick
+      end
+      object BEixoYo: TButton
+        Left = 32
+        Top = 42
+        Width = 102
+        Height = 37
+        Caption = 'BEixoYo'
+        Style = bsCommandLink
+        TabOrder = 1
+        OnClick = BEixoYoClick
+      end
+      object BEixoXo: TButton
+        Left = 32
+        Top = 85
+        Width = 102
+        Height = 37
+        Caption = 'BEixoXo'
+        Style = bsCommandLink
+        TabOrder = 2
+        OnClick = BEixoXoClick
+      end
+    end
+    object Panel4: TPanel
+      Left = 6
+      Top = 12
+      Width = 246
+      Height = 126
+      Caption = 'Panel4'
+      ShowCaption = False
+      TabOrder = 1
+      object Cores: TColorBox
+        Left = 8
+        Top = 82
+        Width = 231
+        Height = 36
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -24
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ItemHeight = 30
+        ParentFont = False
+        TabOrder = 0
+      end
+      object BDiminuir: TButton
+        Left = 131
+        Top = 24
+        Width = 105
+        Height = 37
+        Caption = 'BDiminuir'
+        Default = True
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        Style = bsCommandLink
+        TabOrder = 1
+        OnClick = BDiminuirClick
+      end
+      object BAumentar: TButton
+        Left = 8
+        Top = 22
+        Width = 105
+        Height = 37
+        Caption = 'BAumentar'
+        Default = True
+        Style = bsCommandLink
+        TabOrder = 2
+        OnClick = BAumentarClick
+      end
+    end
+    object Panel5: TPanel
+      Left = 399
+      Top = 12
+      Width = 730
+      Height = 126
+      Caption = 'Panel5'
+      ShowCaption = False
+      TabOrder = 2
+      object LblDivisao: TLabel
+        Left = 150
+        Top = 55
+        Width = 240
+        Height = 33
+        Caption = '------------|-----------'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlue
+        Font.Height = -27
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+      end
+      object LablVelocidadeInicial: TLabel
+        Left = 150
+        Top = 52
+        Width = 123
+        Height = 19
+        Caption = 'Velocidade Inicial'
+      end
+      object LbelAngulo: TLabel
+        Left = 150
+        Top = 77
+        Width = 51
+        Height = 19
+        Caption = 'Angulo'
+      end
+      object EdtXo: TEdit
+        Left = 8
+        Top = 8
+        Width = 121
+        Height = 27
+        Enabled = False
+        TabOrder = 0
+        Text = '0,0'
+      end
+      object EdtYo: TEdit
+        Left = 8
+        Top = 41
+        Width = 121
+        Height = 27
+        Enabled = False
+        TabOrder = 1
+        Text = '0,0'
+      end
+      object EdtZo: TEdit
+        Left = 8
+        Top = 74
+        Width = 121
+        Height = 27
+        TabOrder = 2
+        Text = '0,0'
+      end
+      object BtnLancar: TButton
+        Left = 150
+        Top = 12
+        Width = 102
+        Height = 37
+        Caption = 'BtnLancar'
+        TabOrder = 3
+        OnClick = BtnLancarClick
+      end
+      object EdtVelocidadeInicial: TEdit
+        Left = 287
+        Top = 41
+        Width = 121
+        Height = 27
+        TabOrder = 4
+        Text = '100'
+      end
+      object EdtAngulo: TEdit
+        Left = 287
+        Top = 77
+        Width = 121
+        Height = 27
+        TabOrder = 5
+        Text = '60'
+      end
+      object Button1: TButton
+        Left = 567
+        Top = 12
+        Width = 107
+        Height = 37
+        Caption = 'Render'
+        TabOrder = 6
+        OnClick = Button1Click
+      end
+      object BtnDupTeta: TButton
+        Left = 433
+        Top = 12
+        Width = 104
+        Height = 38
+        Caption = 'BtnDupTeta'
+        TabOrder = 7
+        OnClick = BtnDupTetaClick
+      end
+      object BtnDupAlpha: TButton
+        Left = 435
+        Top = 69
+        Width = 102
+        Height = 37
+        Caption = 'BtnDupAlpha'
+        TabOrder = 8
+        OnClick = BtnDupAlphaClick
+      end
+    end
+  end
+  object Tempo_Eixo: TTimer
+    Interval = 45
+    OnTimer = Tempo_EixoTimer
+    Left = 208
+    Top = 392
+  end
+  object Tempo_Draw: TTimer
+    Interval = 16
+    OnTimer = Tempo_DrawTimer
+    Left = 216
+    Top = 296
+  end
+  object PMEixoXY: TPopupMenu
+    Left = 632
+    Top = 368
+    object ConstruirLinha1: TMenuItem
+      Caption = 'Construir Linha'
+      OnClick = ConstruirLinha1Click
+    end
+    object PElipse: TMenuItem
+      Caption = 'Construir Elipses'
+      OnClick = PElipseClick
+    end
+    object Limpa_Desenho: TMenuItem
+      Caption = 'Limpa_Desenho'
+      OnClick = Limpa_DesenhoClick
+    end
+    object Volta_Linha: TMenuItem
+      Caption = 'Volta_Linha'
+      OnClick = Volta_LinhaClick
+    end
+  end
+  object DlgSalvar: TSaveDialog
+    DefaultExt = 'DEN'
+    Filter = 'desenhos EixoXY_64(*DEN)|*.DEN'
+    Left = 80
+    Top = 320
+  end
+  object DlgAbrir: TOpenDialog
+    Filter = 'Desenho EixoXY_64|*.DEN'
+    Left = 504
+    Top = 192
+  end
+  object TimerLancar: TTimer
+    Interval = 1
+    Left = 208
+    Top = 496
+  end
+  object MainMenu1: TMainMenu
+    Left = 696
+    Top = 520
+    object Arquivo1: TMenuItem
+      Caption = 'Arquivo'
+      object Salvar1: TMenuItem
+        Caption = 'Salvar'
+        OnClick = Salvar1Click
+      end
+      object Abrir1: TMenuItem
+        Caption = 'Abrir'
+        OnClick = Abrir1Click
+      end
+    end
+    object Viso1: TMenuItem
+      Caption = 'Vis'#227'o'
+      object RBVisaoXoY: TMenuItem
+        AutoCheck = True
+        Caption = 'RBVisaoXoY'
+        Checked = True
+        RadioItem = True
+        OnClick = RBVisaoXoYClick
+      end
+      object RBVisaoXoZ: TMenuItem
+        AutoCheck = True
+        Caption = 'RBVisaoXoZ'
+        RadioItem = True
+        OnClick = RBVisaoXoZClick
+      end
+      object RBVisaoYoZ: TMenuItem
+        AutoCheck = True
+        Caption = 'RBVisaoYoZ'
+        RadioItem = True
+        OnClick = RBVisaoYoZClick
+      end
+    end
+    object Desenhos1: TMenuItem
+      Caption = 'Desenhos'
+      object Cancela_Line: TMenuItem
+        AutoCheck = True
+        Caption = 'Cancela'
+        Checked = True
+        RadioItem = True
+        OnClick = Cancela_LineClick
+      end
+      object Line: TMenuItem
+        AutoCheck = True
+        Caption = 'Linha'
+        RadioItem = True
+        OnClick = LineClick
+      end
+      object RBQuadrilatero: TMenuItem
+        AutoCheck = True
+        Caption = 'RBQuadrilatero'
+        RadioItem = True
+        OnClick = RBQuadrilateroClick
+      end
+      object RBElipse: TMenuItem
+        AutoCheck = True
+        Caption = 'RBElipse'
+        RadioItem = True
+      end
+    end
+    object Export1: TMenuItem
+      Caption = 'Export'
+      object ExportarGLB1: TMenuItem
+        Caption = 'Exportar para glTF (.glb)...'
+        OnClick = ExportarGLB1Click
+      end
+      object ImportarGLB1: TMenuItem
+        Caption = 'Importar glTF (.glb)...'
+        OnClick = ImportarGLB1Click
+      end
+    end
+  end
+end

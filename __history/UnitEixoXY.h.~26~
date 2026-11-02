@@ -1,0 +1,136 @@
+//---------------------------------------------------------------------------
+
+#ifndef UnitEixoXYH
+#define UnitEixoXYH
+//---------------------------------------------------------------------------
+#include <System.Classes.hpp>
+#include <Vcl.Controls.hpp>
+#include <Vcl.StdCtrls.hpp>
+#include <Vcl.Forms.hpp>
+#include <Vcl.ExtCtrls.hpp>
+#include "UnitConstrucaoLine.h"
+#include "UnitElipse.h"
+#include "Arquivo.h"
+#include <string.h>
+#include <Vcl.Dialogs.hpp>
+#include <Vcl.Menus.hpp>
+#include <malloc.h>
+#include <Vcl.Menus.hpp>
+#include <Vcl.Dialogs.hpp>
+using Name_Arquivos::Objetos;
+using Name_Arquivos::Line;
+using Name_Arquivos::Arquivo;
+//---------------------------------------------------------------------------
+class TEixoXY : public TForm
+{
+__published:	// IDE-managed Components
+	TPanel *Panel1;
+	TPanel *Panel2;
+	TRadioButton *Line;
+	TRadioButton *Cancela_Line;
+	TTimer *Tempo_Eixo;
+	TTimer *Tempo_Draw;
+	TColorBox *Cores;
+	TPanel *Panel3;
+	TButton *ButtonEixo_Zo;
+	TButton *BEixoYo;
+	TButton *BEixoXo;
+	TPanel *Panel4;
+	TButton *BDiminuir;
+	TPanel *Panel5;
+	TRadioGroup *RGVisao;
+	TRadioButton *RBVisaoXoZ;
+	TRadioButton *RBVisaoXoY;
+	TRadioButton *RBVisaoYoZ;
+	TRadioGroup *RGLine;
+	TButton *BAumentar;
+	TEdit *EdtXo;
+	TEdit *EdtYo;
+	TEdit *EdtZo;
+	TPopupMenu *PMEixoXY;
+	TMenuItem *ConstruirLinha1;
+	TButton *BtnSalvar;
+	TButton *BtnAbrir;
+	TSaveDialog *DlgSalvar;
+	TMenuItem *PElipse;
+	TOpenDialog *DlgAbrir;
+	TMenuItem *Limpa_Desenho;
+	TMenuItem *Volta_Linha;
+	TButton *BtnLancar;
+	TLabel *LblDivisao;
+	TEdit *EdtVelocidadeInicial;
+	TEdit *EdtAngulo;
+	TLabel *LablVelocidadeInicial;
+	TLabel *LbelAngulo;
+	TTimer *TimerLancar;
+	TRadioButton *RBElipse;
+	TButton *Button1;
+	TRadioButton *RBQuadrilatero;
+	void __fastcall FormMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);
+	void __fastcall FormMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
+          int X, int Y);
+	void __fastcall Tempo_DrawTimer(TObject *Sender);
+	void __fastcall ButtonEixo_ZoClick(TObject *Sender);
+	void __fastcall Tempo_EixoTimer(TObject *Sender);
+	void __fastcall LineClick(TObject *Sender);
+	void __fastcall RBVisaoXoZClick(TObject *Sender);
+	void __fastcall RBVisaoXoYClick(TObject *Sender);
+	void __fastcall BEixoYoClick(TObject *Sender);
+	void __fastcall BEixoXoClick(TObject *Sender);
+	void __fastcall RBVisaoYoZClick(TObject *Sender);
+	void __fastcall BAumentarClick(TObject *Sender);
+	void __fastcall BDiminuirClick(TObject *Sender);
+	void __fastcall ConstruirLinha1Click(TObject *Sender);
+	void __fastcall BtnSalvarClick(TObject *Sender);
+	void __fastcall PElipseClick(TObject *Sender);
+	void __fastcall BtnAbrirClick(TObject *Sender);
+	void __fastcall Limpa_DesenhoClick(TObject *Sender);
+	void __fastcall Volta_LinhaClick(TObject *Sender);
+	void __fastcall BtnLancarClick(TObject *Sender);
+	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
+	void __fastcall FormCreate(TObject *Sender);
+	void __fastcall Button1Click(TObject *Sender);
+	void __fastcall Button2Click(TObject *Sender);
+
+private:	// User declarations
+public:		// User declarations
+	bool Eixo_Lancar;
+	bool Lancar;
+ 	Objetos *Objetos_Atr;
+    Objetos *ObjEixos;
+	int Contador_Line;
+	int Contador_Circle;
+	int **FullMLK;
+	int **FullMLK2;
+	int **FullMLK3;
+	TPoint **P_Circle;
+	TPoint **MP1;
+	float Kx1;
+	float Ky1;
+	TPoint **MP2;
+    TPoint **MP3;
+	TPoint **Draw_Elipse(TCanvas *Plano,Objetos *);
+	void Draw_ElipseDirect(TCanvas *Plano,Objetos *,TPoint **);
+	long double ABT[3];
+	void Draw_Lines_Direct(TCanvas *Plano,Objetos *Objetos_Atr, int **FullMLK);
+	void Draw_Lines_DirectQuadrilatero(TCanvas *Plano,Objetos *Objetos_Atr, int **TmpFullMLK2,int **TmpFullMLK3);
+	TPoint **Draw_Lines(TCanvas *Plano,Objetos *,int **);
+	TPoint **Draw_Quadrilatero(TCanvas *Plano,Objetos *,int **,int **);
+    void LimpaQuadrilatero(TCanvas *Plano,int **FullMLK2,int **FullMLK3, int Countador_Line);
+	void Grava_Arquivo(Objetos *Objetos_Atr,char *Nome_Arquivo);
+	void Ler_Arquivo(Objetos *Objetos_Atr,char *Nome_Arquivo);
+	long double *Realocar(long double *Ponteiro,int Tamanho);
+	int *Realocar(int *Ponteiro,int Tamanho);
+    unsigned int *Realocar(unsigned int *Ponteiro,int Tamanho);
+    TPoint **Realocar_Ponteiro_DuploL2(TPoint **Ponteiro,int Tamanho);
+	TPoint **Realocar_Ponteiro_DuploC(TPoint **Ponteiro,int Tamanho);
+    TPoint **Realocar_Ponteiro_DuploL(TPoint **Ponteiro,int Tamanho);
+	void Limpa_Elipses(TCanvas *,TPoint **,int);
+	unsigned long *Realocar(unsigned long *,int );
+	void Lancamento();
+	__fastcall TEixoXY(TComponent* Owner);
+};
+//---------------------------------------------------------------------------
+extern PACKAGE TEixoXY *EixoXY;
+//---------------------------------------------------------------------------
+#endif

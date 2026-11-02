@@ -1,0 +1,730 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+
+#include "Render.h"
+#include <gl\gl.h>
+#include <gl\glu.h>
+#include "glm\glm\glm.hpp"
+#include "glm\glm\ext.hpp"
+#include "UnitEixoXY.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TForm1 *Form1;
+using Name_Arquivos::Objetos;
+using namespace glm;
+//---------------------------------------------------------------------------
+int Kx1=960;
+int Ky1=540;
+int OX1(int);
+int OY1(int);
+// Copia Tamanho valores long double para um vetor de float, dividindo cada um
+// por Escala. O vetor original (da classe Line) nao e alterado.
+std::vector<float> ConvertToScale(const long double *value,int Tamanho,float Escala){
+
+	std::vector<float> Resultado(Tamanho>0 ? Tamanho : 0);
+
+	if(value!=0)
+		for(int i=0;i<Tamanho;i++)
+			Resultado[i]=(float)(value[i]/Escala);
+
+	return Resultado;
+}
+
+// Usa uma cor do desenho (COLORREF, 0x00BBGGRR) ou um TColor como cor corrente
+// do OpenGL. TColorParaCOLORREF troca cores do sistema (clBtnFace...) pelo RGB.
+// O preto (clBlack) e desenhado em branco.
+void glColorTColor(COLORREF Cor){
+
+	COLORREF RGBCor=TColorParaCOLORREF(Cor);
+
+	if(RGBCor==RGB(0,0,0))
+		RGBCor=RGB(255,255,255);
+
+	glColor3f(GetRValue(RGBCor)/255.0f,
+			  GetGValue(RGBCor)/255.0f,
+			  GetBValue(RGBCor)/255.0f);
+}
+
+
+//---------------------------------------------------------------------------
+ int TForm1::ogl_init()
+ {
+	if (ogl_inicialized) return 1;
+	hdc = GetDC(Form1->Handle);             // get device context
+	PIXELFORMATDESCRIPTOR pfd;
+	int iPixelFormat;
+	ZeroMemory( &pfd, sizeof( pfd ) );      // set the pixel format for the DC
+	pfd.nSize = sizeof( pfd );
+	pfd.nVersion = 1;
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 24;
+	pfd.cDepthBits = 24;
+
+
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+
+	iPixelFormat=ChoosePixelFormat(hdc,&pfd);
+	SetPixelFormat(hdc,iPixelFormat,&pfd);
+
+	hrc = wglCreateContext(hdc);            // create current rendering context
+	if(hrc == NULL)
+			{
+			ShowMessage("Could not initialize OpenGL Rendering context !!!");
+			ogl_inicialized=0;
+			return 0;
+			}
+	if(wglMakeCurrent(hdc, hrc) == false)
+			{
+			ShowMessage("Could not make current OpenGL Rendering context !!!");
+			wglDeleteContext(hrc);          // destroy rendering context
+			ogl_inicialized=0;
+			return 0;
+			}
+	ogl_resize();
+	glEnable(GL_DEPTH_TEST);                // Zbuf
+    glDisable(GL_CULL_FACE);                // vynechavaj odvratene steny
+	glDisable(GL_TEXTURE_2D);               // pouzivaj textury, farbu pouzivaj z textury
+    glDisable(GL_BLEND);                    // priehladnost
+	glShadeModel(GL_SMOOTH);                // gourard shading
+	glClearColor(0.0f, 0.01f, 0.1f, 1.0f);   // background color
+	ogl_inicialized=1;
+    return 1;
+ }
+//---------------------------------------------------------------------------
+void TForm1::ogl_exit()
+	{
+	if (!ogl_inicialized) return;
+	wglMakeCurrent(NULL, NULL);     // release current rendering context
+	wglDeleteContext(hrc);          // destroy rendering context
+	ogl_inicialized=0;
+    }
+//---------------------------------------------------------------------------
+void TForm1::ogl_draw()
+{
+
+	
+
+	
+
+
+
+	if(Form1->RadioGroup1->ItemIndex==1){
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glFlush();
+
+		const bool EmLancamento=Lancar;
+		if(EmLancamento){
+			// camera fixa (a mesma do ogl_resize, sem o deslocamento nem os giros da roda
+			// do mouse), desenho no ponto (Kx,Ky) da trajetoria e girando sobre os
+			// proprios eixos: Teta (Z), depois Beta (Y), depois Alpha (X), como no EixoXY
+			glPushMatrix();
+			glLoadIdentity();
+			gluLookAt(0,0.0,-10, 0,0,0, 0,1,0);
+			glRotatef(180,0.0,1,0.0);
+			glTranslatef(Kx,Ky,0.0);
+			glRotatef(Giro,1,0,0);
+			glRotatef(Giro,0,1,0);
+			glRotatef(Giro,0,0,1);
+		}
+
+		DrawQuadrilateros(EixoXY->Objetos_Atr);
+
+		glBegin(GL_LINES);
+
+			DrawLines(EixoXY->Objetos_Atr);
+		glEnd();
+
+		DrawElipses(EixoXY->Objetos_Atr);
+
+		// fim do lancamento: a matriz volta e o desenho fica no lugar de partida
+		if(EmLancamento)
+			glPopMatrix();
+
+		SwapBuffers(hdc);
+    }
+
+
+
+					   // jednotkova matica textury
+
+	 if(Form1->RadioGroup1->ItemIndex==0){
+
+     // Limpa a janela de visualização com a cor de fundo especificada
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	 // Especifica que a cor corrente é vermelha
+	 // Executa os comandos OpenGL
+		glFlush();
+
+		glBegin(GL_LINES);
+
+		Form1->Draw_Lines_Direct_Render(EixoXY->Canvas,EixoXY->Objetos_Atr, EixoXY->FullMLK);
+
+		glEnd();
+
+		Draw_Elipses_Render(EixoXY->Objetos_Atr);
+
+
+
+
+	 // Executa os comandos OpenGL
+
+	 SwapBuffers(hdc);
+
+	 }
+
+
+}
+//---------------------------------------------------------------------------
+void TForm1::ogl_resize()	{
+
+
+	xs=ClientWidth;
+	ys=ClientHeight;
+	if (xs<=0) xs = 1;                  // Prevent a divide by zero
+	if (ys<=0) ys = 1;
+	if (!ogl_inicialized) return;
+
+	glViewport(0,0,xs,ys);              // Set Viewport to window dimensions
+
+	if(Form1->RadioGroup1->ItemIndex==1){
+		glMatrixMode(GL_PROJECTION);        // operacie s projekcnou maticou
+		glLoadIdentity();
+		gluPerspective(75,float(xs)/float(ys),1,500);// matica=perspektiva,120 stupnov premieta z viewsize do 0.1
+
+		glMatrixMode(GL_TEXTURE);           // operacie s texturovou maticou
+		glLoadIdentity();
+
+		// a camera (gluLookAt) fica na matriz do modelo, nao na de projecao
+		glMatrixMode(GL_MODELVIEW);         // operacie s modelovou maticou
+		glLoadIdentity();
+		gluLookAt(0,0.0,-10, 0,0,0, 0,1,0);
+		glRotatef(180,0.0,1,0.0);
+
+		DrawDirect(EixoXY->Objetos_Atr);
+		ogl_draw();
+
+
+	}
+
+	if(Form1->RadioGroup1->ItemIndex==0){
+
+		// Janela de selecao (left, right, bottom, top) nas coordenadas da tela
+		// do EixoXY (1920x1080), qualquer que seja o formato da janela
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluOrtho2D (0, 1920, 0, 1080);
+
+		// zera a rotacao que ficou do modo 3D (glRotatef 180 e roda do mouse)
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		ogl_draw();
+	}
+
+	// nos dois modos a matriz ativa aqui e a GL_MODELVIEW
+	glTranslatef(-3.0,-2.0,0.0);
+}
+//---------------------------------------------------------------------------
+__fastcall TForm1::TForm1(TComponent* Owner)
+	: TForm(Owner)
+	{
+	ogl_inicialized=0;
+	hdc=NULL;
+	hrc=NULL;
+	Lancar=false;
+	t=0;
+	Kx=0;
+	Ky=0;
+	Giro=0;
+	ogl_init();
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormDestroy(TObject *Sender)
+    {
+	ogl_exit();
+    }
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormResize(TObject *Sender)
+	{
+
+	ogl_resize();
+	if(0){
+	glm::mat4 Translatez=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,0.f,1.0f));
+	glm::mat4 Translatey=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,1.f,0.0f));
+	glm::mat4 Translatex=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(1.0,0.f,0.0f));
+	Rotate= Translatex*Translatey*Translatez;
+	}
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormPaint(TObject *Sender)
+    {
+    ogl_draw();
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::Timer1Timer(TObject *Sender)
+    {
+	ogl_draw();
+
+	if(Lancar)
+	Lancamento();
+
+
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormMouseWheelDown(TObject *Sender, TShiftState Shift,
+      TPoint &MousePos, bool &Handled)
+    {
+
+	if(0)
+	glTranslatef(0.0,-2.0,0.0);
+	glRotatef(2.0,0.0,-2.0,0.0);
+    ogl_draw();
+    }
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormMouseWheelUp(TObject *Sender, TShiftState Shift,
+      TPoint &MousePos, bool &Handled)
+    {
+
+	if(0)
+	glTranslatef(0.0,2.0,0.0);
+	glRotatef(2.0,0.0,0.0,1.0);
+
+	ogl_draw();
+    }
+//---------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+int OX1(int x){
+return x+Kx1;
+
+}
+int OY1(int y){
+return y+Ky1;
+
+}
+
+int X1(int x){
+return x+Kx1;
+}
+
+
+int Y1(int y){
+return Ky1-y;
+}
+
+int OX2(int x){
+
+return (x-Kx1);
+
+}
+
+int OY2(int y){
+  return (Ky1-y);
+}
+void TForm1::Draw_Lines_Direct_Render(TCanvas *Plano,Objetos *Objetos_Atr, int **FullMLK){
+
+TPoint MP[2];
+
+int Tmp_Contador_Line=Objetos_Atr[0].Lines_Atr->GetContador_Line();
+
+	for (int i = 0; i < Tmp_Contador_Line; i++) {
+		// cor original da linha (a mesma do EixoXY)
+		glColorTColor(Objetos_Atr[0].Lines_Atr->GetCor_Line(i));
+		TForm1::MoveTo(OX2(FullMLK[i][0]),OY2(FullMLK[i][1]));
+		TForm1::LineTo(OX2(FullMLK[i][2]),OY2(FullMLK[i][3]));
+	}
+
+
+
+
+
+
+
+}
+
+void TForm1::Draw_Lines_Direct_RenderQuadrilatero(TCanvas *Plano,Objetos *Objetos_Atr, int **FullMLK2,int **FullMLK3){
+
+int Tmp_Contador_Line=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+		for (int i = 0; i < Tmp_Contador_Line; i++) {
+
+			TForm1::MoveTo(OX2(FullMLK2[i][0]),OY2(FullMLK2[i][1]));
+			TForm1::LineTo(OX2(FullMLK2[i][2]),OY2(FullMLK2[i][3]));
+			TForm1::MoveTo(OX2(FullMLK2[i][2]),OY2(FullMLK2[i][3]));
+			TForm1::LineTo(OX2(FullMLK3[i][0]),OY2(FullMLK3[i][1]));
+			TForm1::MoveTo(OX2(FullMLK3[i][0]),OY2(FullMLK3[i][1]));
+			TForm1::LineTo(OX2(FullMLK3[i][2]),OY2(FullMLK3[i][3]));
+			TForm1::MoveTo(OX2(FullMLK3[i][2]),OY2(FullMLK3[i][3]));
+			TForm1::LineTo(OX2(FullMLK2[i][0]),OY2(FullMLK2[i][1]));
+
+		}
+
+
+}
+
+void TForm1::MoveTo(int x,int y){
+
+	glVertex2i(OX1(x),OY1(y));
+}
+void TForm1::LineTo(int x,int y){
+
+	glVertex2i(OX1(x),OY1(y));
+}
+
+void TForm1::DrawDirect_RenderQuadrilateroSolid(Objetos *Objetos_Atr,int **FullMLK2,int **FullMLK3){
+
+int Tmp_Contador_Line=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+		for (int i = 0; i < Tmp_Contador_Line; i++) {
+
+			TForm1::MoveTo(OX2(FullMLK2[i][0]),OY2(FullMLK2[i][1]));
+			TForm1::LineTo(OX2(FullMLK2[i][2]),OY2(FullMLK2[i][3]));
+			TForm1::LineTo(OX2(FullMLK3[i][0]),OY2(FullMLK3[i][1]));
+			TForm1::LineTo(OX2(FullMLK3[i][2]),OY2(FullMLK3[i][3]));
+
+
+
+		}
+
+
+
+}
+
+void TForm1::DrawDirect(Objetos *Objetos_Atr){
+
+int ContadorQuadrilatero=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+	if(ContadorQuadrilatero<0)
+		ContadorQuadrilatero=0;
+
+	// um canto por quadrilatero: o tamanho vem do desenho, sem limite fixo
+	P1.resize(ContadorQuadrilatero);
+	P2.resize(ContadorQuadrilatero);
+	P3.resize(ContadorQuadrilatero);
+	P4.resize(ContadorQuadrilatero);
+	Vetor1.resize(ContadorQuadrilatero);
+	Vetor2.resize(ContadorQuadrilatero);
+	Vetor3.resize(ContadorQuadrilatero);
+	Vetor4.resize(ContadorQuadrilatero);
+
+	for(int i=0;i<ContadorQuadrilatero;i++){
+
+		Vetor1[i][0]=P1[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetMAlpha(i))*Objetos_Atr[0].Quadrilatero->GetMVetor(i);
+		Vetor1[i][1]=P1[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetMAlpha(i))*Objetos_Atr[0].Quadrilatero->GetMVetor(i);
+		Vetor1[i][2]=P1[i][2]=Objetos_Atr[0].Quadrilatero->GetMZo(i);
+
+		Vetor2[i][0]=P2[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetLAlpha(i))*Objetos_Atr[0].Quadrilatero->GetLVetor(i);
+		Vetor2[i][1]=P2[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetLAlpha(i))*Objetos_Atr[0].Quadrilatero->GetLVetor(i);
+		Vetor2[i][2]=P2[i][2]=Objetos_Atr[0].Quadrilatero->GetLZo(i);
+
+		Vetor3[i][0]=P3[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetMAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetMVetor2(i);
+		Vetor3[i][1]=P3[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetMAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetMVetor2(i);
+		Vetor3[i][2]=P3[i][2]=Objetos_Atr[0].Quadrilatero->GetMZo2(i);
+
+		Vetor4[i][0]=P4[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetLAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetLVetor2(i);
+		Vetor4[i][1]=P4[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetLAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetLVetor2(i);
+		Vetor4[i][2]=P4[i][2]=Objetos_Atr[0].Quadrilatero->GetLZo2(i);
+
+
+		for(int j=0;j<3;j++){
+			Vetor1[i][j]=Vetor1[i][j]/150;
+			Vetor2[i][j]=Vetor2[i][j]/150;
+			Vetor3[i][j]=Vetor3[i][j]/150;
+			Vetor4[i][j]=Vetor4[i][j]/150;
+		}
+
+
+
+	}
+
+
+}
+
+
+
+
+
+
+void __fastcall TForm1::Button1Click(TObject *Sender)
+{
+	glRotatef(2,0.0,0.0,10.0);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button2Click(TObject *Sender)
+{
+	glm::mat4 Translate=glm::rotate(glm::mat4(1.f),0.5f,glm::vec3(0.0,0.f,1.0));
+	glm::vec4 Vetor=glm::vec4(10.0,0.0,0.0,0.0);
+	Vetor=Translate*Vetor;
+
+	ShowMessage(FloatToStr(Vetor[0])+"*"+FloatToStr(Vetor[2]));
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BtnLancarClick(TObject *Sender)
+{
+	// velocidade inicial e angulo (graus) sao os mesmos campos do EixoXY
+	if((EixoXY->EdtVelocidadeInicial->Text.IsEmpty())||(EixoXY->EdtAngulo->Text.IsEmpty())){
+		ShowMessage("Preencha os Campos velocidade e Angulo" );
+		return;
+	}
+
+	try{
+		Vo_Lancamento=EixoXY->EdtVelocidadeInicial->Text.ToDouble();
+		Angulo_Lancamento=EixoXY->EdtAngulo->Text.ToDouble()*M_PI/180;
+	}catch(Exception &ex){
+		ShowMessage("Velocidade ou Angulo invalido");
+		return;
+	}
+
+	// o lancamento e mostrado na visao 3D
+	if(RadioGroup1->ItemIndex!=1){
+		RadioGroup1->ItemIndex=1;
+		ogl_resize();
+	}
+
+	Inicio_Lancamento=GetTickCount64();
+	Lancar=true;
+	Lancamento();							// posicao e giro de partida (t=0)
+}
+//---------------------------------------------------------------------------
+// Mesma trajetoria do TEixoXY::Lancamento, em pixels de uma tela 1920x1080:
+//     x = 400 + Vo*cos(Angulo)*t        y = 700 - (Vo*sin(Angulo)*t - 10*t*t/2)
+// com t subindo 0,03 a cada 16 ms (o Tempo_Draw do EixoXY) ate 30, e o giro
+// subindo PI/150 por passo nos tres eixos. Aqui o t vem do relogio, entao a
+// velocidade nao depende do intervalo do Timer1. Os pixels viram unidades do
+// OpenGL pela mesma escala do desenho (1/150), com o centro da tela na origem.
+void TForm1::Lancamento(){
+
+	const float Passo_t=0.03f;				// t por passo do EixoXY
+	const float Passo_ms=16.0f;				// intervalo do Tempo_Draw do EixoXY
+	const float Escala=150;
+
+	t=(float)(GetTickCount64()-Inicio_Lancamento)*(Passo_t/Passo_ms);
+
+	if(t>=30){
+		Lancar=false;						// o ogl_draw volta a desenhar no lugar de partida
+		ShowMessage("Fim do Lançamento...!");
+		return;
+	}
+
+	const float x=400+Vo_Lancamento*Cos(Angulo_Lancamento)*t;
+	const float y=700-(Vo_Lancamento*Sin(Angulo_Lancamento)*t-(10*t*t)/2.0f);
+
+	Kx=(x-960)/Escala;
+	Ky=-(y-540)/Escala;						// na tela o y cresce para baixo
+
+	Giro=(t/Passo_t)*(180.0f/150.0f);		// PI/150 rad = 1,2 graus por passo
+
+}
+
+glm::vec4 TForm1::Rotaciona(float Angulo,float x,float y,float z){
+
+	glm::mat4 Translatez=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,0.f,1.0f));
+	glm::mat4 Translatey=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,1.f,0.0f));
+	glm::mat4 Translatex=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(1.0,0.f,0.0f));
+	Rotate= Translatex*Translatey*Translatez;
+
+	glm::vec4 Vetor=glm::vec4(x,y,z,0.0);
+	Vetor= Rotate*Vetor;
+
+	return Vetor;
+}
+
+void TForm1::RotacionaDesenho(Objetos *Objetos_Atr){
+
+int ContadorQuadrilatero=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+	// Vetor1..4 tem os quadrilateros calculados no ultimo DrawDirect
+	if(ContadorQuadrilatero>(int)Vetor1.size())
+		ContadorQuadrilatero=(int)Vetor1.size();
+
+	for(int i=0;i<ContadorQuadrilatero;i++){
+
+
+
+			int Contar=i%3;
+		switch(Contar){
+			case 0 :
+					glColor3f(1.0f, 0.0f, 0.0f);
+				break;
+			case 1 :
+					glColor3f(0.0f, 1.0f, 0.0f);
+				break;
+			case 2 :
+					glColor3f(0.0f, 0.0f, 1.0f);
+				break;
+			default:
+					glColor3f(1.0f, 0.0f, 0.0f);
+
+		}
+		if(Lancar){
+		Vetor1[i]=Rotaciona(0.05,Vetor1[i][0],Vetor1[i][1],Vetor1[i][2]);
+		Vetor2[i]=Rotaciona(0.05,Vetor2[i][0],Vetor2[i][1],Vetor2[i][2]);
+		Vetor3[i]=Rotaciona(0.05,Vetor3[i][0],Vetor3[i][1],Vetor3[i][2]);
+		Vetor4[i]=Rotaciona(0.05,Vetor4[i][0],Vetor4[i][1],Vetor4[i][2]);
+        }
+
+
+		glVertex3f((float)Vetor1[i][0],(float)Vetor1[i][1],(float)Vetor1[i][2]);
+		glVertex3f((float)Vetor2[i][0],(float)Vetor2[i][1],(float)Vetor2[i][2]);
+		glVertex3f((float)Vetor3[i][0],(float)Vetor3[i][1],(float)Vetor3[i][2]);
+		glVertex3f((float)Vetor4[i][0],(float)Vetor4[i][1],(float)Vetor4[i][2]);
+
+	}
+
+
+}
+void __fastcall TForm1::RadioGroup1Click(TObject *Sender)
+{
+
+	ogl_resize();
+
+}
+//---------------------------------------------------------------------------
+
+// Visao 2D: os mesmos pontos de tela que o EixoXY desenha (P_Circle, 51 por elipse)
+void TForm1::Draw_Elipses_Render(Objetos *Objetos_Atr){
+
+	TPoint **P_Circle=EixoXY->BufP_Circle.Ponteiros();
+	const int Quantidade=Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr();
+
+	if((P_Circle==NULL)||(Quantidade>EixoXY->BufP_Circle.GetLinhas()))
+		return;
+
+	for(int j=0;j<Quantidade;j++){
+		glColorTColor(Objetos_Atr[0].Elipse_Atr->GetColor_Circle_Atr(j));
+		glBegin(GL_LINE_STRIP);
+		for(int i=0;i<51;i++)
+			TForm1::LineTo(OX2(P_Circle[j][i].x),OY2(P_Circle[j][i].y));
+		glEnd();
+	}
+
+}
+
+// Visao 3D: pontos da elipse no espaco, na mesma escala (1/150) das linhas
+// Giro proprio de um objeto, igual ao Draw_Lines/Draw_Elipse do EixoXY: primeiro Teta
+// em torno de Zo, depois Alpha em torno de Xo. Sem isso as copias do DuplicaTeta e do
+// DuplicaAlpha que so diferem pelo angulo sairiam umas em cima das outras.
+static void GiraObjeto(float xyz[3],long double Teta,long double Alpha){
+
+	const float x=xyz[0],y=xyz[1],z=xyz[2];
+	const float CosT=(float)Cos(Teta),SinT=(float)Sin(Teta);
+	const float CosA=(float)Cos(Alpha),SinA=(float)Sin(Alpha);
+
+	const float y1=x*SinT+y*CosT;
+	xyz[0]=x*CosT-y*SinT;
+	xyz[1]=y1*CosA-z*SinA;
+	xyz[2]=y1*SinA+z*CosA;
+
+}
+
+void TForm1::DrawElipses(const Objetos *Objects)
+{
+
+	Name_Arquivos::Elipse *Elipses=Objects[0].Elipse_Atr;
+	const float Escala=150;
+	long double Ponto[3];
+
+	for(int j=0;j<Elipses->GetContadorCircle_Atr();j++){
+		glColorTColor(Elipses->GetColor_Circle_Atr(j));
+		glBegin(GL_LINE_STRIP);
+		// na elipse o AnguloX faz o papel do Teta e o AnguloY o do Alpha
+		const long double Teta=Elipses->GetAnguloX(j);
+		const long double Alpha=Elipses->GetAnguloY(j);
+		for(int i=0;i<51;i++){
+			PontoElipse3D(Elipses,j,i,Ponto);
+			float P[3]={(float)(Ponto[0]/Escala),(float)(Ponto[1]/Escala),(float)(Ponto[2]/Escala)};
+			GiraObjeto(P,Teta,Alpha);
+			glVertex3f(P[0],P[1],P[2]);
+		}
+		glEnd();
+	}
+
+}
+
+// Visao 3D: quadrilateros solidos (GL_QUADS), na mesma escala (1/150) das linhas.
+// Cada canto e guardado em coordenadas polares no plano XY: x=cos(Alpha)*Vetor,
+// y=sin(Alpha)*Vetor, z=Zo. Os cantos vao na ordem do contorno: M, L, M2, L2.
+void TForm1::DrawQuadrilateros(const Objetos *Objects)
+{
+
+	TQuadrilatero *Quad=Objects[0].Quadrilatero;
+	const int CountQuad=Quad->GetContadorQuadrilatero();
+	// mesma escala (1/150) das linhas e dos quadrilateros em DrawDirect
+	const float Escala=150;
+
+	if(CountQuad<=0)
+		return;
+
+	// cantos de todos os quadrilateros, ja convertidos para float na escala do OpenGL
+	std::vector<float> X[4],Y[4],Z[4];
+	for(int k=0;k<4;k++){
+		X[k].resize(CountQuad);
+		Y[k].resize(CountQuad);
+		Z[k].resize(CountQuad);
+	}
+
+	for(int i=0;i<CountQuad;i++){
+		const long double Alpha[4]={Quad->GetMAlpha(i),Quad->GetLAlpha(i),Quad->GetMAlpha2(i),Quad->GetLAlpha2(i)};
+		const long double Vetor[4]={Quad->GetMVetor(i),Quad->GetLVetor(i),Quad->GetMVetor2(i),Quad->GetLVetor2(i)};
+		const long double Zo[4]   ={Quad->GetMZo(i)   ,Quad->GetLZo(i)   ,Quad->GetMZo2(i)   ,Quad->GetLZo2(i)};
+
+		for(int k=0;k<4;k++){
+			X[k][i]=(float)(Cos(Alpha[k])*Vetor[k]/Escala);
+			Y[k][i]=(float)(Sin(Alpha[k])*Vetor[k]/Escala);
+			Z[k][i]=(float)(Zo[k]/Escala);
+		}
+	}
+
+	glBegin(GL_QUADS);
+	for(int i=0;i<CountQuad;i++)
+	{
+		glColorTColor(Quad->GetCor(i));
+		for(int k=0;k<4;k++)
+			glVertex3f(X[k][i],Y[k][i],Z[k][i]);
+	}
+	glEnd();
+
+}
+
+void TForm1::DrawLines(const Objetos *Objects)
+{
+
+	const int CountLine=Objects[0].Lines_Atr->GetContador_Line();
+	// mesma escala (1/150) dos quadrilateros em DrawDirect
+	const float Escala=150;
+
+	if(CountLine<=0)
+		return;
+
+	// Variaveis de MoveTo (M) e LineTo (L)
+const std::vector<float> MX=ConvertToScale(Objects[0].Lines_Atr->GetMXo_Atr(),CountLine,Escala);
+const std::vector<float> MY=ConvertToScale(Objects[0].Lines_Atr->GetMYo_Atr(),CountLine,Escala);
+const std::vector<float> MZ=ConvertToScale(Objects[0].Lines_Atr->GetMZo_Atr(),CountLine,Escala);
+const std::vector<float> LX=ConvertToScale(Objects[0].Lines_Atr->GetLXo_Atr(),CountLine,Escala);
+const std::vector<float> LY=ConvertToScale(Objects[0].Lines_Atr->GetLYo_Atr(),CountLine,Escala);
+const std::vector<float> LZ=ConvertToScale(Objects[0].Lines_Atr->GetLZo_Atr(),CountLine,Escala);
+
+
+	for(int i=0;i<CountLine;i++)
+	{
+		const long double Teta=Objects[0].Lines_Atr->GetAnguloTeta(i);
+		const long double Alpha=Objects[0].Lines_Atr->GetAnguloAlpha(i);
+		float M[3]={MX[i],MY[i],MZ[i]};
+		float L[3]={LX[i],LY[i],LZ[i]};
+//		GiraObjeto(M,Teta,Alpha);   gira objetos desnecessa´rio pois MX e subsequentes já veem de gravados
+//		GiraObjeto(L,Teta,Alpha);
+
+		glColorTColor(Objects[0].Lines_Atr->GetCor_Line(i));
+		glVertex3f(M[0],M[1],M[2]);
+		glVertex3f(L[0],L[1],L[2]);
+	}
+
+}

@@ -1,0 +1,49 @@
+//---------------------------------------------------------------------------
+
+#ifndef UnitQuadrilateroH
+#define UnitQuadrilateroH
+//---------------------------------------------------------------------------
+
+
+class TQuadrilatero{
+	private:
+		long double *MAlpha;
+		long double *MVetor;
+		long double *MAlpha2;
+		long double *MVetor2;
+		long double *LAlpha;
+		long double *LVetor;
+		long double *LAlpha2;
+		long double *LVetor2;
+		unsigned int *Cor_Quadrilatero;
+		int ContadorQuadrilatero;
+
+	public:
+
+		TQuadrilatero();
+        void AlocarQuadrilatero(int Tam);
+		void SetMAlpha(long double,int);
+		long double GetMAlpha(int)const;
+		void SetMVetor(long double,int);
+		long double GetMVetor(int) const;
+		void SetMAlpha2(long double,int);
+		long double GetMAlpha2(int)const;
+		void SetMVetor2(long double,int);
+		long double GetMVetor2(int)const;
+
+		void SetLAlpha(long double,int);
+		long double GetLApha(int)const;
+		void SetLVetor(long double,int);
+		long double GetLVetor(int)const;
+		void SetLAlpha2(long double,int);
+		long double GetLAlpha2(int)const;
+		void SetLVetor2(long double,int);
+		long double GetLVetor2(int)const;
+		void SetContadorQuadrilatero(int);
+		int GetContadorQuadrilatero()const;
+
+
+};
+
+
+#endif

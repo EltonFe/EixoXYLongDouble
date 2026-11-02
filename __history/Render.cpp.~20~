@@ -1,0 +1,534 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+
+#include "Render.h"
+#include <gl\gl.h>
+#include <gl\glu.h>
+#include <glm\glm.hpp>
+#include <glm\ext.hpp>
+#include "UnitEixoXY.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TForm1 *Form1;
+using Name_Arquivos::Objetos;
+using namespace glm;
+//---------------------------------------------------------------------------
+int Kx1=960;
+int Ky1=540;
+int OX1(int);
+int OY1(int);
+
+//---------------------------------------------------------------------------
+ int TForm1::ogl_init()
+	{
+	if (ogl_inicialized) return 1;
+	hdc = GetDC(Form1->Handle);             // get device context
+	PIXELFORMATDESCRIPTOR pfd;
+	int iPixelFormat;
+	ZeroMemory( &pfd, sizeof( pfd ) );      // set the pixel format for the DC
+	pfd.nSize = sizeof( pfd );
+	pfd.nVersion = 1;
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 24;
+	pfd.cDepthBits = 24;
+
+
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+
+	iPixelFormat=ChoosePixelFormat(hdc,&pfd);
+	SetPixelFormat(hdc,iPixelFormat,&pfd);
+
+	hrc = wglCreateContext(hdc);            // create current rendering context
+	if(hrc == NULL)
+			{
+			ShowMessage("Could not initialize OpenGL Rendering context !!!");
+			ogl_inicialized=0;
+			return 0;
+			}
+	if(wglMakeCurrent(hdc, hrc) == false)
+			{
+			ShowMessage("Could not make current OpenGL Rendering context !!!");
+			wglDeleteContext(hrc);          // destroy rendering context
+			ogl_inicialized=0;
+			return 0;
+			}
+	ogl_resize();
+	glEnable(GL_DEPTH_TEST);                // Zbuf
+    glDisable(GL_CULL_FACE);                // vynechavaj odvratene steny
+	glDisable(GL_TEXTURE_2D);               // pouzivaj textury, farbu pouzivaj z textury
+    glDisable(GL_BLEND);                    // priehladnost
+	glShadeModel(GL_SMOOTH);                // gourard shading
+	glClearColor(0.0f, 0.01f, 0.1f, 1.0f);   // background color
+	ogl_inicialized=1;
+    return 1;
+	}
+//---------------------------------------------------------------------------
+void TForm1::ogl_exit()
+	{
+	if (!ogl_inicialized) return;
+	wglMakeCurrent(NULL, NULL);     // release current rendering context
+	wglDeleteContext(hrc);          // destroy rendering context
+	ogl_inicialized=0;
+    }
+//---------------------------------------------------------------------------
+void TForm1::ogl_draw()
+	{
+
+	if(0){
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glRotatef (2,0,0.0,1);
+	glTranslatef(Kx,Ky,0.0);
+	float x=0.5,y=0.5,z=0.00;
+	glBegin(GL_QUADS);
+	if(0){
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3i(-10,-10,-0);
+	glVertex3f(-x,+y,-z);
+	glVertex3f(+x,+y,-z);
+	glVertex3f(+x,-y,-z);
+
+
+	}
+
+	glColor3f(0.0f, 1.0f, 0.0f);
+
+	glEnd();
+
+
+	glFlush();
+	SwapBuffers(hdc);
+
+	}
+
+
+
+	if(EixoXY->RBQuadrilatero->Checked){
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glFlush();
+	glBegin(GL_QUADS);
+
+	  RotacionaDesenho(EixoXY->Objetos_Atr);
+
+	glEnd();
+
+
+
+
+	SwapBuffers(hdc);
+    }
+
+
+
+					   // jednotkova matica textury
+
+	 if(EixoXY->Line->Checked){
+
+     // Limpa a janela de visualização com a cor de fundo especificada
+	 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	 // Especifica que a cor corrente é vermelha
+	 //         R     G     B
+
+
+
+
+
+	 // Executa os comandos OpenGL
+		glFlush();
+
+		glBegin(GL_LINES);
+
+
+
+
+
+		Form1->Draw_Lines_Direct_Render(EixoXY->Canvas,EixoXY->Objetos_Atr, EixoXY->FullMLK);
+
+		glEnd();
+
+
+
+
+	 // Executa os comandos OpenGL
+
+	   SwapBuffers(hdc);
+
+	 }
+
+
+	}
+//---------------------------------------------------------------------------
+void TForm1::ogl_resize()	{
+
+
+	xs=ClientWidth;
+	ys=ClientHeight;
+	if (xs<=0) xs = 1;                  // Prevent a divide by zero
+	if (ys<=0) ys = 1;
+	if (!ogl_inicialized) return;
+	if(EixoXY->RBQuadrilatero->Checked){
+		DrawDirect(EixoXY->Objetos_Atr);
+		glViewport(0,0,xs,ys);              // Set Viewport to window dimensions
+		glMatrixMode(GL_PROJECTION);        // operacie s projekcnou maticou
+		glLoadIdentity();
+
+		gluPerspective(45,float(xs)/float(ys),1,500);// matica=perspektiva,120 stupnov premieta z viewsize do 0.1
+		gluLookAt(0,0.0,-10, 0,0,0, 0,1,0);
+
+		glMatrixMode(GL_TEXTURE);           // operacie s texturovou maticou
+		glLoadIdentity();
+				   // jednotkova matica textury
+		glMatrixMode(GL_MODELVIEW);         // operacie s modelovou maticou
+		glLoadIdentity();
+
+		glRotatef(180,0.0,1,0.0);
+		DrawDirect(EixoXY->Objetos_Atr);				   // jednotkova matica modelu (objektu)
+		ogl_draw();
+
+	}
+
+	if(EixoXY->Line->Checked){
+			   // Evita a divisao por zero
+		if(ys == 0) ys = 1;
+
+                   // Especifica as dimensões da Viewport
+		glViewport(0, 0, xs, ys);
+
+                   // Inicializa o sistema de coordenadas
+		glMatrixMode(GL_PROJECTION);
+				   glLoadIdentity();
+
+				   // Estabelece a janela de seleção (left, right, bottom, top)
+		if (xs <= ys)
+			gluOrtho2D (0.0f, 0.0f, 0.0f, 0.0f);
+		else
+			gluOrtho2D (0, 1920, 0, 1080);
+
+		ogl_draw();
+	}
+
+	glTranslatef(-3.0,-2.0,0.0);
+}
+//---------------------------------------------------------------------------
+__fastcall TForm1::TForm1(TComponent* Owner)
+	: TForm(Owner)
+	{
+	ogl_inicialized=0;
+	hdc=NULL;
+	hrc=NULL;
+	ogl_init();
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormDestroy(TObject *Sender)
+    {
+	ogl_exit();
+    }
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormResize(TObject *Sender)
+	{
+
+	ogl_resize();
+	if(0){
+	glm::mat4 Translatez=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,0.f,1.0f));
+	glm::mat4 Translatey=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,1.f,0.0f));
+	glm::mat4 Translatex=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(1.0,0.f,0.0f));
+	Rotate= Translatex*Translatey*Translatez;
+	}
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormPaint(TObject *Sender)
+    {
+    ogl_draw();
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::Timer1Timer(TObject *Sender)
+    {
+	ogl_draw();
+
+	if(Lancar)
+	Lancamento();
+
+
+	}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormMouseWheelDown(TObject *Sender, TShiftState Shift,
+      TPoint &MousePos, bool &Handled)
+    {
+
+	if(0)
+	glTranslatef(0.0,-2.0,0.0);
+	glRotatef(2.0,0.0,-2.0,0.0);
+    ogl_draw();
+    }
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormMouseWheelUp(TObject *Sender, TShiftState Shift,
+      TPoint &MousePos, bool &Handled)
+    {
+
+	if(0)
+	glTranslatef(0.0,2.0,0.0);
+	glRotatef(2.0,0.0,0.0,1.0);
+
+	ogl_draw();
+    }
+//---------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+int OX1(int x){
+return x+Kx1;
+
+}
+int OY1(int y){
+return y+Ky1;
+
+}
+
+int X1(int x){
+return x+Kx1;
+}
+
+
+int Y1(int y){
+return Ky1-y;
+}
+
+int OX2(int x){
+
+return (x-Kx1);
+
+}
+
+int OY2(int y){
+  return (Ky1-y);
+}
+void TForm1::Draw_Lines_Direct_Render(TCanvas *Plano,Objetos *Objetos_Atr, int **FullMLK){
+
+int Contar=0;
+TPoint MP[2];
+
+int Tmp_Contador_Line=Objetos_Atr[0].Lines_Atr->GetContador_Line();
+
+	for (int i = 0; i < Tmp_Contador_Line; i++) {
+		Contar=i%4;
+		switch(Contar){
+			case 0 :
+					glColor3f(1.0f, 0.0f, 0.0f);
+				break;
+			case 1 :
+					glColor3f(0.0f, 1.0f, 0.0f);
+				break;
+			case 2 :
+					glColor3f(0.0f, 0.0f, 1.0f);
+				break;
+			case 3  :
+					glColor3f(1.0f,1.0f,0.0f);
+                break;
+			default:
+					glColor3f(1.0f, 0.0f, 0.0f);
+
+		}
+		TForm1::MoveTo(OX2(FullMLK[i][0]),OY2(FullMLK[i][1]));
+		TForm1::LineTo(OX2(FullMLK[i][2]),OY2(FullMLK[i][3]));
+		Contar++;
+	}
+
+
+
+
+
+
+
+}
+
+void TForm1::Draw_Lines_Direct_RenderQuadrilatero(TCanvas *Plano,Objetos *Objetos_Atr, int **FullMLK2,int **FullMLK3){
+
+int Tmp_Contador_Line=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+		for (int i = 0; i < Tmp_Contador_Line; i++) {
+
+			TForm1::MoveTo(OX2(FullMLK2[i][0]),OY2(FullMLK2[i][1]));
+			TForm1::LineTo(OX2(FullMLK2[i][2]),OY2(FullMLK2[i][3]));
+			TForm1::MoveTo(OX2(FullMLK2[i][2]),OY2(FullMLK2[i][3]));
+			TForm1::LineTo(OX2(FullMLK3[i][0]),OY2(FullMLK3[i][1]));
+			TForm1::MoveTo(OX2(FullMLK3[i][0]),OY2(FullMLK3[i][1]));
+			TForm1::LineTo(OX2(FullMLK3[i][2]),OY2(FullMLK3[i][3]));
+			TForm1::MoveTo(OX2(FullMLK3[i][2]),OY2(FullMLK3[i][3]));
+			TForm1::LineTo(OX2(FullMLK2[i][0]),OY2(FullMLK2[i][1]));
+
+		}
+
+
+}
+
+void TForm1::MoveTo(int x,int y){
+
+	glVertex2i(OX1(x),OY1(y));
+}
+void TForm1::LineTo(int x,int y){
+
+	glVertex2i(OX1(x),OY1(y));
+}
+
+void TForm1::DrawDirect_RenderQuadrilateroSolid(Objetos *Objetos_Atr,int **FullMLK2,int **FullMLK3){
+
+int Tmp_Contador_Line=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+		for (int i = 0; i < Tmp_Contador_Line; i++) {
+
+			TForm1::MoveTo(OX2(FullMLK2[i][0]),OY2(FullMLK2[i][1]));
+			TForm1::LineTo(OX2(FullMLK2[i][2]),OY2(FullMLK2[i][3]));
+			TForm1::LineTo(OX2(FullMLK3[i][0]),OY2(FullMLK3[i][1]));
+			TForm1::LineTo(OX2(FullMLK3[i][2]),OY2(FullMLK3[i][3]));
+
+
+
+		}
+
+
+
+}
+
+void TForm1::DrawDirect(Objetos *Objetos_Atr){
+
+int ContadorQuadrilatero=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+	for(int i=0;i<ContadorQuadrilatero;i++){
+
+		Vetor1[i][0]=P1[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetMAlpha(i))*Objetos_Atr[0].Quadrilatero->GetMVetor(i);
+		Vetor1[i][1]=P1[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetMAlpha(i))*Objetos_Atr[0].Quadrilatero->GetMVetor(i);
+		Vetor1[i][2]=P1[i][2]=Objetos_Atr[0].Quadrilatero->GetMZo(i);
+
+		Vetor2[i][0]=P2[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetLAlpha(i))*Objetos_Atr[0].Quadrilatero->GetLVetor(i);
+		Vetor2[i][1]=P2[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetLAlpha(i))*Objetos_Atr[0].Quadrilatero->GetLVetor(i);
+		Vetor2[i][2]=P2[i][2]=Objetos_Atr[0].Quadrilatero->GetLZo(i);
+
+		Vetor3[i][0]=P3[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetMAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetMVetor2(i);
+		Vetor3[i][1]=P3[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetMAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetMVetor2(i);
+		Vetor3[i][2]=P3[i][2]=Objetos_Atr[0].Quadrilatero->GetMZo2(i);
+
+		Vetor4[i][0]=P4[i][0]=Cos(Objetos_Atr[0].Quadrilatero->GetLAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetLVetor2(i);
+		Vetor4[i][1]=P4[i][1]=Sin(Objetos_Atr[0].Quadrilatero->GetLAlpha2(i))*Objetos_Atr[0].Quadrilatero->GetLVetor2(i);
+		Vetor4[i][2]=P4[i][2]=Objetos_Atr[0].Quadrilatero->GetLZo2(i);
+
+
+		for(int j=0;j<3;j++){
+			Vetor1[i][j]=Vetor1[i][j]/150;
+			Vetor2[i][j]=Vetor2[i][j]/150;
+			Vetor3[i][j]=Vetor3[i][j]/150;
+			Vetor4[i][j]=Vetor4[i][j]/150;
+		}
+
+
+
+	}
+
+
+}
+
+
+
+
+
+
+void __fastcall TForm1::Button1Click(TObject *Sender)
+{
+	glRotatef(2,0.0,0.0,10.0);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button2Click(TObject *Sender)
+{
+	glm::mat4 Translate=glm::rotate(glm::mat4(1.f),0.5f,glm::vec3(0.0,0.f,1.0));
+	glm::vec4 Vetor=glm::vec4(10.0,0.0,0.0,0.0);
+	Vetor=Translate*Vetor;
+
+	ShowMessage(FloatToStr(Vetor[0])+"*"+FloatToStr(Vetor[2]));
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button3Click(TObject *Sender)
+{
+	glLoadIdentity();
+	glRotatef(180,0.0,1,0.0);
+	glTranslatef(-3,-2,0.0f);
+	Lancar=true;
+	t=0;
+	Kx=0;
+	Ky=0;
+}
+//---------------------------------------------------------------------------
+void TForm1::Lancamento(){
+	if(EixoXY->RBQuadrilatero->Checked){
+		t=t+0.00005;
+		Kx=0.07 *Cos(M_PI/3 );
+		Ky=0.07*Sin(M_PI/3) -(10.0)*t;
+		  // operacie s projekcnou maticou
+
+		glTranslatef(Kx,Ky,0.0);
+	}
+
+
+
+
+
+
+}
+
+glm::vec4 TForm1::Rotaciona(float Angulo,float x,float y,float z){
+
+	glm::mat4 Translatez=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,0.f,1.0f));
+	glm::mat4 Translatey=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(0.0,1.f,0.0f));
+	glm::mat4 Translatex=glm::rotate(glm::mat4(1.f),Angulo,glm::vec3(1.0,0.f,0.0f));
+	Rotate= Translatex*Translatey*Translatez;
+
+	glm::vec4 Vetor=glm::vec4(x,y,z,0.0);
+	Vetor= Rotate*Vetor;
+
+	return Vetor;
+}
+
+void TForm1::RotacionaDesenho(Objetos *Objetos_Atr){
+
+int ContadorQuadrilatero=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+	for(int i=0;i<ContadorQuadrilatero;i++){
+
+
+
+			int Contar=i%3;
+		switch(Contar){
+			case 0 :
+					glColor3f(1.0f, 0.0f, 0.0f);
+				break;
+			case 1 :
+					glColor3f(0.0f, 1.0f, 0.0f);
+				break;
+			case 2 :
+					glColor3f(0.0f, 0.0f, 1.0f);
+				break;
+			default:
+					glColor3f(1.0f, 0.0f, 0.0f);
+
+		}
+		if(Lancar){
+		Vetor1[i]=Rotaciona(0.05,Vetor1[i][0],Vetor1[i][1],Vetor1[i][2]);
+		Vetor2[i]=Rotaciona(0.05,Vetor2[i][0],Vetor2[i][1],Vetor2[i][2]);
+		Vetor3[i]=Rotaciona(0.05,Vetor3[i][0],Vetor3[i][1],Vetor3[i][2]);
+		Vetor4[i]=Rotaciona(0.05,Vetor4[i][0],Vetor4[i][1],Vetor4[i][2]);
+        }
+
+
+		glVertex3f((float)Vetor1[i][0],(float)Vetor1[i][1],(float)Vetor1[i][2]);
+		glVertex3f((float)Vetor2[i][0],(float)Vetor2[i][1],(float)Vetor2[i][2]);
+		glVertex3f((float)Vetor3[i][0],(float)Vetor3[i][1],(float)Vetor3[i][2]);
+		glVertex3f((float)Vetor4[i][0],(float)Vetor4[i][1],(float)Vetor4[i][2]);
+
+	}
+
+
+}

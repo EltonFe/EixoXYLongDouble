@@ -1,0 +1,75 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 299
+  ClientWidth = 635
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  WindowState = wsMaximized
+  OnDestroy = FormDestroy
+  OnMouseWheelDown = FormMouseWheelDown
+  OnMouseWheelUp = FormMouseWheelUp
+  OnPaint = FormPaint
+  OnResize = FormResize
+  TextHeight = 13
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 635
+    Height = 89
+    Align = alTop
+    Caption = 'Panel1'
+    TabOrder = 0
+    object RadioGroup1: TRadioGroup
+      Left = 328
+      Top = 0
+      Width = 185
+      Height = 73
+      Caption = 'Vis'#227'o'
+      ItemIndex = 0
+      Items.Strings = (
+        '2D'
+        '3D')
+      TabOrder = 0
+      OnClick = RadioGroup1Click
+    end
+    object Button2: TButton
+      Left = 128
+      Top = 16
+      Width = 75
+      Height = 25
+      Caption = 'Button2'
+      TabOrder = 1
+      OnClick = Button2Click
+    end
+    object Button1: TButton
+      Left = 40
+      Top = 16
+      Width = 75
+      Height = 25
+      Caption = 'Button1'
+      TabOrder = 2
+      OnClick = Button1Click
+    end
+    object BtnLancar: TButton
+      Left = 209
+      Top = 16
+      Width = 75
+      Height = 25
+      Caption = 'Lan'#231'ar'
+      TabOrder = 3
+      OnClick = BtnLancarClick
+    end
+  end
+  object Timer1: TTimer
+    Interval = 42
+    OnTimer = Timer1Timer
+    Left = 352
+    Top = 232
+  end
+end

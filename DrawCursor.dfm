@@ -1,0 +1,32 @@
+object FDrawCursor: TFDrawCursor
+  Left = 0
+  Top = 400
+  BorderStyle = bsNone
+  Caption = 'FDrawCursor'
+  ClientHeight = 78
+  ClientWidth = 247
+  Color = clWhite
+  TransparentColor = True
+  TransparentColorValue = clWhite
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  Position = poDesigned
+  Visible = True
+  TextHeight = 13
+  object DrawCursor: TLabel
+    Left = 5
+    Top = 17
+    Width = 70
+    Height = 35
+    Caption = '{0;0}'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -29
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+  end
+end

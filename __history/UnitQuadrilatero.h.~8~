@@ -1,0 +1,64 @@
+//---------------------------------------------------------------------------
+
+#ifndef UnitQuadrilateroH
+#define UnitQuadrilateroH
+//---------------------------------------------------------------------------
+#include <malloc.h>
+
+class TQuadrilatero{
+		public:
+		long double *MAlpha;
+		long double *MVetor;
+		long double *MAlpha2;
+		long double *MVetor2;
+		long double *LAlpha;
+		long double *LVetor;
+		long double *LAlpha2;
+		long double *LVetor2;
+		long double *MZo;
+		long double *LZo;
+		long double *MZo2;
+		long double *LZo2;
+		unsigned int *Cor_Quadrilatero;
+		int ContadorQuadrilatero;
+
+
+
+		TQuadrilatero();
+		void AlocarQuadrilatero(int Tam);
+		unsigned int  *RealocarQuadrilatero(unsigned int *Ponteiro,int Tamanho);
+		long double  *RealocarQuadrilatero(long double *Ponteiro,int Tamanho);
+		void SetMAlpha(long double,int);
+		long double GetMAlpha(int)const;
+		void SetMVetor(long double,int);
+		long double GetMVetor(int) const;
+		void SetMAlpha2(long double,int);
+		long double GetMAlpha2(int)const;
+		void SetMVetor2(long double,int);
+		long double GetMVetor2(int)const;
+
+		void SetLAlpha(long double,int);
+		long double GetLAlpha(int)const;
+		void SetLVetor(long double,int);
+		long double GetLVetor(int)const;
+		void SetLAlpha2(long double,int);
+		long double GetLAlpha2(int)const;
+		void SetLVetor2(long double,int);
+		long double GetLVetor2(int)const;
+		void SetContadorQuadrilatero(int);
+		int GetContadorQuadrilatero()const;
+		void SetMZo(long double ,int);
+		long double GetMZo(int)const;
+		void SetLZo(long double, int );
+		long double GetLZo(int)const;
+		void SetMZo2(long double ,int);
+		long double GetMZo2(int)const;
+		void SetLZo2(long double, int );
+		long double GetLZo2(int)const;
+		void SetCor(unsigned int Cor,int index);
+		unsigned int GetCor(int index)const;
+
+};
+
+
+#endif

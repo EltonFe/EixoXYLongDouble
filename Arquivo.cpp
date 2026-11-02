@@ -1,0 +1,2174 @@
+//---------------------------------------------------------------------------
+
+#pragma hdrstop
+
+#include "Arquivo.h"
+#include "GLB.h"
+
+#include <cmath>
+#include <algorithm>
+#include <fstream>
+#include <System.SysUtils.hpp>
+
+#include <System.Math.hpp>
+#include <stdlib.h>
+#include <string>
+#include <windows.h>
+#include "UnitEixoXY.h"
+
+using std::strcpy;
+
+using  Name_Arquivos::Objetos;
+using Name_Arquivos::Arquivo;
+
+
+using Name_Arquivos::Elipse;
+using Name_Arquivos::Line;
+
+// Marca do bloco de rotacao das linhas no .DEN: bytes 'A','N','G','1'
+const unsigned int MarcaAngulos=0x31474E41;
+
+void Name_Arquivos::LimpaMemoria(){
+
+}
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+//Class Line
+//----------------------------------------------------------------------------
+
+Line::Line(){
+
+	Contador_Line=0;
+	for(int i=0;i<3;i++)
+		Alpha_B_T[i]=0;
+
+
+}
+
+//------------------------------------------------------------------------------
+
+void Line::Alocando_Line(int Count){
+
+	if(Count<=0)
+		return;
+
+	// resize mantem os valores ja guardados e zera as posicoes novas
+	// (as linhas novas comecam sem rotacao)
+	MAlpha_Atr.resize(Count);
+	MVetor_Atr.resize(Count);
+	LAlpha_Atr.resize(Count);
+	LVetor_Atr.resize(Count);
+	MXo_Atr.resize(Count);
+	LXo_Atr.resize(Count);
+	MYo_Atr.resize(Count);
+	LYo_Atr.resize(Count);
+	MZo_Atr.resize(Count);
+	LZo_Atr.resize(Count);
+	Cor_Line.resize(Count);
+	Angulo_Alpha.resize(Count);
+	Angulo_Beta.resize(Count);
+	Angulo_Teta.resize(Count);
+
+}
+
+void Line::SetMAlpha_Atr(long double Valor,int Index){
+
+	GravarVetor(MAlpha_Atr,Index,Valor);
+
+
+}
+void Line::SetMAlpha_Atr(long double *Ptr){
+
+	CopiaVetor(MAlpha_Atr,Ptr);
+
+}
+
+void Line::SetLAlpha_Atr(long double Valor,int Index){
+
+	GravarVetor(LAlpha_Atr,Index,Valor);
+
+}
+
+void Line::SetLAlpha_Atr(long double *Ptr){
+
+	CopiaVetor(LAlpha_Atr,Ptr);
+
+}
+
+
+
+
+
+void Line::SetMVetor_Atr(long double Valor,int Index){
+
+	GravarVetor(MVetor_Atr,Index,Valor);
+
+}
+
+void Line::SetMVetor_Atr(long double *Ptr){
+
+	CopiaVetor(MVetor_Atr,Ptr);
+
+}
+
+void Line::SetLVetor_Atr(long double Valor,int Index){
+
+
+	GravarVetor(LVetor_Atr,Index,Valor);
+
+
+}
+void Line::SetLVetor_Atr(long double *Ptr){
+
+	CopiaVetor(LVetor_Atr,Ptr);
+
+}
+
+void Line::SetMXo_Atr(long double Valor,int Index){
+
+	GravarVetor(MXo_Atr,Index,Valor);
+
+
+}
+
+void Line::SetMXo_Atr(long double *Ptr){
+
+	CopiaVetor(MXo_Atr,Ptr);
+
+}
+void Line::SetLXo_Atr(long double Valor,int Index){
+
+	GravarVetor(LXo_Atr,Index,Valor);
+
+
+}
+
+void Line::SetLXo_Atr(long double *Ptr){
+
+	CopiaVetor(LXo_Atr,Ptr);
+
+}
+
+
+void Line::SetMYo_Atr(long double Valor,int Index){
+
+
+	GravarVetor(MYo_Atr,Index,Valor);
+
+
+}
+
+
+void Line::SetLYo_Atr(long double Valor,int Index){
+
+	GravarVetor(LYo_Atr,Index,Valor);
+
+}
+
+
+void Line::SetContador_Line(int Valor){
+
+	Contador_Line=Valor;
+
+}
+
+void Line::SetMZo_Atr(long double Valor,int Index){
+
+	GravarVetor(MZo_Atr,Index,Valor);
+
+}
+
+void Line::SetMZo_Atr(long double *Ptr){
+
+	CopiaVetor(MZo_Atr,Ptr);
+
+}
+
+
+void Line::SetLZo_Atr(long double Valor,int Index){
+
+	GravarVetor(LZo_Atr,Index,Valor);
+
+
+}
+
+void Line::SetLZo_Atr(long double *Ptr){
+
+	CopiaVetor(LZo_Atr,Ptr);
+
+}
+
+void Line::SetAlpha_B_T_Atr(long double *ABT){
+for(int i=0;i<3;i++)
+	Alpha_B_T[i]=ABT[i];
+
+}
+
+void Line::SetCor_Line(COLORREF Valor,int Index){
+
+	GravarVetor(Cor_Line,Index,TColorParaCOLORREF(Valor));
+
+}
+
+void Line::SetCor_Line(COLORREF *Ptr){
+
+	CopiaVetor(Cor_Line,Ptr);
+	NormalizaCores(Cor_Line);
+
+}
+
+
+void Line::Set_AngluloAlpha(long double AnguloAlpha,int Index){
+
+	GravarVetor(Angulo_Alpha,Index,AnguloAlpha);
+
+
+
+}
+
+
+void Line::Set_AngluloAlpha(long double *AnguloA){
+
+	CopiaVetor(Angulo_Alpha,AnguloA);
+
+}
+
+long double Line::GetAnguloAlpha(int Index){
+
+	return LerVetor(Angulo_Alpha,Index);
+
+}
+
+
+long double *Line::GetAngloAlpha(){
+
+	return Angulo_Alpha.data();
+
+}
+
+void Line::Set_AngluloBeta(long double AnguloBeta,int Index){
+
+	GravarVetor(Angulo_Beta,Index,AnguloBeta);
+
+}
+
+void Line::Set_AngluloBeta(long double *AnguloBeta){
+
+	CopiaVetor(Angulo_Beta,AnguloBeta);
+
+}
+
+long double Line::GetAnguloBeta(int Index){
+
+	return LerVetor(Angulo_Beta,Index);
+
+}
+
+long double *Line::GetAngloBeta(){
+
+	return Angulo_Beta.data();
+
+}
+
+void Line::Set_AngluloTeta(long double AnguloTeta,int Index){
+
+	GravarVetor(Angulo_Teta,Index,AnguloTeta);
+
+}
+
+void Line::Set_AngluloTeta(long double *AnguloTeta){
+
+CopiaVetor(Angulo_Teta,AnguloTeta);
+
+}
+
+
+long double Line::GetAnguloTeta(int Index){
+
+	return LerVetor(Angulo_Teta,Index);
+
+}
+
+long double *Line::GetAngloTeta(){
+
+	return Angulo_Teta.data();
+
+}
+
+
+
+long double Line::GetAlpha_B_T(long double *ABT){
+
+	for(int i=0;i<3;i++)
+		ABT[i]=Alpha_B_T[i];
+
+
+return 1.0;
+}
+
+long double *Line::GetAlpha_B_T(){
+
+	return Alpha_B_T;
+}
+//------------------------------------------------------------------------------
+
+
+long double Line::GetMAlpha_Atr(int Index){
+
+	return LerVetor(MAlpha_Atr,Index);
+
+
+}
+long double *Line::GetMAlpha_Atr(){
+
+    return MAlpha_Atr.data();
+}
+
+long double Line::GetLAlpha_Atr(int Index){
+
+	return LerVetor(LAlpha_Atr,Index);
+
+}
+long double *Line::GetLAlpha_Atr(){
+
+return LAlpha_Atr.data();
+}
+
+long double Line::GetMVetor_Atr(int Index){
+
+	return LerVetor(MVetor_Atr,Index);
+
+}
+long double *Line::GetMVetor_Atr(){
+
+return MVetor_Atr.data();
+}
+
+
+long double Line::GetLVetor_Atr(int Index){
+
+	return LerVetor(LVetor_Atr,Index);
+
+}
+long double Line::GetAlpha_B_T(int Index){
+
+	if(Index<0 || Index>=3)
+		return 0;
+
+return Alpha_B_T[Index];
+}
+
+long double *Line::GetLVetor_Atr(){
+
+	return LVetor_Atr.data();
+
+}
+
+long double Line::GetMZo_Atr(int Index){
+
+return LerVetor(MZo_Atr,Index);
+
+}
+long double *Line::GetMZo_Atr(){
+
+return MZo_Atr.data();
+
+}
+
+//-------------------------------------------------------------------------------------
+// As pontas da linha sao guardadas em coordenadas polares no plano XY
+// (MAlpha/MVetor e LAlpha/LVetor, vindas do EixoXo). x e y saem delas, por
+// isso valem tambem depois de abrir um .DEN, duplicar ou dar zoom.
+void Line::CalculaXoYo(){
+
+	const size_t Tamanho=MAlpha_Atr.size();
+
+	MXo_Atr.resize(Tamanho);
+	MYo_Atr.resize(Tamanho);
+	LXo_Atr.resize(Tamanho);
+	LYo_Atr.resize(Tamanho);
+
+	for(size_t i=0;i<Tamanho;i++){
+		MXo_Atr[i]=GetMXo_Atr((int)i);
+		MYo_Atr[i]=GetMYo_Atr((int)i);
+		LXo_Atr[i]=GetLXo_Atr((int)i);
+		LYo_Atr[i]=GetLYo_Atr((int)i);
+	}
+
+}
+
+long double Line::GetMXo_Atr(int Index)const{
+
+	return std::cos(LerVetor(MAlpha_Atr,Index))*LerVetor(MVetor_Atr,Index);
+
+}
+// o ponteiro vale ate o proximo Alocando_Line ou Get...Xo/Yo_Atr()
+long double *Line::GetMXo_Atr(){
+
+	CalculaXoYo();
+	return MXo_Atr.data();
+
+}
+
+long double Line::GetLXo_Atr(int Index)const{
+
+	return std::cos(LerVetor(LAlpha_Atr,Index))*LerVetor(LVetor_Atr,Index);
+
+}
+long double *Line::GetLXo_Atr(){
+
+	CalculaXoYo();
+	return LXo_Atr.data();
+
+}
+//--------------------------------------------------------------------------------
+
+long double Line::GetMYo_Atr(int Index)const{
+
+	return std::sin(LerVetor(MAlpha_Atr,Index))*LerVetor(MVetor_Atr,Index);
+
+}
+long double *Line::GetMYo_Atr(){
+
+	CalculaXoYo();
+	return MYo_Atr.data();
+
+}
+
+long double Line::GetLYo_Atr(int Index)const{
+
+	return std::sin(LerVetor(LAlpha_Atr,Index))*LerVetor(LVetor_Atr,Index);
+
+}
+long double *Line::GetLYo_Atr(){
+
+	CalculaXoYo();
+	return LYo_Atr.data();
+
+}
+
+//------------------------------------------------------------------
+
+
+long double Line::GetLZo_Atr(int Index){
+
+
+	return LerVetor(LZo_Atr,Index);
+
+}
+long double *Line::GetLZo_Atr(){
+
+
+	return LZo_Atr.data();
+
+}
+
+COLORREF Line::GetCor_Line(int Index){
+
+	return LerVetor(Cor_Line,Index);
+
+}
+
+COLORREF *Line::GetCor_Line(){
+
+	return Cor_Line.data();
+
+}
+
+long double *Line::GetMAlpha_AtrPtr(){
+
+	return MAlpha_Atr.data();
+
+}
+
+int Line::GetContador_Line(){
+
+    return Contador_Line;
+
+}
+
+//------------------------------------------------------------------------------
+
+//Class Objetos-----------------------------------------------------
+
+
+Objetos::Objetos(){
+
+	Elipse_Atr=new Elipse();
+	Lines_Atr=new Line();
+    Quadrilatero=new TQuadrilatero();
+
+	Count_Line=0;
+	Mxy=NULL;
+	Lxy=NULL;
+	Point=NULL;
+
+	List=new TList();
+	P2=new TPoint[2];
+	Chave_Point=true;
+	Visao_XY=true;
+	Visao_XZ=false;
+	for(int i=0;i<3;i++)
+        Alpha_B_T[i]=0;
+
+}
+
+Objetos::~Objetos(){
+
+	delete Elipse_Atr;
+	delete Lines_Atr;
+	delete Quadrilatero;
+	delete List;
+	delete[] P2;
+
+}
+
+
+
+void Objetos::SetAlpha_B_T(long double ABT,int Index){
+
+	if(Index<0 || Index>=3)
+		return;
+
+Alpha_B_T[Index]=ABT;
+
+}
+void Objetos::SetAlpha_B_T(long double ABT[3]){
+
+	for(int i=0;i<3;i++)
+		Alpha_B_T[i]=ABT[i];
+
+}
+long double * Objetos::GetAlpha_B_T(){
+
+	return Alpha_B_T;
+
+}
+long double Objetos::GetAlpha_B_T(int Index){
+
+	if(Index<0 || Index>=3)
+		return 0;
+
+	return Alpha_B_T[Index];
+
+}
+void Objetos::GetAlpha_B_T(long double ABT[]){
+	for(int i=0;i<3;i++)
+		ABT[i]=Alpha_B_T[i];
+}
+
+// Desenha ao mesmo tempo linhas, elipses e quadrilateros usando os pontos ja
+// calculados no form (FullMLK, P_Circle, FullMLK2/FullMLK3)
+void Objetos::Draw(Objetos *Objetos_Atr){
+
+	if((EixoXY==NULL)||(Objetos_Atr==NULL))
+		return;
+
+	TCanvas *Plano=EixoXY->Canvas;
+
+	if((Objetos_Atr[0].Lines_Atr->GetContador_Line()>0)&&(EixoXY->FullMLK!=NULL)&&(EixoXY->MP1!=NULL)){
+		try{
+			EixoXY->Draw_Lines_Direct(Plano,Objetos_Atr,EixoXY->FullMLK);
+		}catch(Exception &ex){
+
+		}
+	}
+
+	if((Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr()>0)&&(EixoXY->P_Circle!=NULL))
+		EixoXY->Draw_ElipseDirect(Plano,Objetos_Atr,EixoXY->P_Circle);
+
+	if((Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero()>0)&&(EixoXY->MP2!=NULL))
+		EixoXY->DrawQuadrilineDirect(Plano,Objetos_Atr,EixoXY->MP2);
+
+}
+
+
+Arquivo::Arquivo(){
+
+
+
+}
+
+
+
+UnicodeString Objetos::Teste(){
+
+return "Classe Objetos";
+}
+
+//-----------------------------------------------------------------------------
+
+
+void Objetos::Rotacao_Vetores_3D_Circle_MP2(float xyz[3],float xe,float ye, float  ze, float Alpha_Beta_Teta[3])
+{
+  float AX;
+  float AY;
+  float AZ;
+  float T1;
+  float T2;
+  float T3;
+  if(0){
+  xyz[0]= Cos( Alpha_Beta_Teta[1]+M_PI/2)*Cos( Alpha_Beta_Teta[2])*xe - Cos(Alpha_Beta_Teta[1]+M_PI/2)*Sin(Alpha_Beta_Teta[2])*ye + Sin(Alpha_Beta_Teta[1]+M_PI/2)*ze;
+  T1=Cos( Alpha_Beta_Teta[1]+M_PI/2)*Cos( Alpha_Beta_Teta[2])*xe;
+  T2= - Cos(Alpha_Beta_Teta[1]+M_PI/2)*Sin(Alpha_Beta_Teta[2])*ye;
+  T3=  Sin(Alpha_Beta_Teta[1]+M_PI/2)*ze;
+
+  AX= RoundTo( (Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1]+M_PI/2)*Cos(Alpha_Beta_Teta[2])+ Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[2])),-8);
+  AY= RoundTo((-Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1]+M_PI/2)*Sin(Alpha_Beta_Teta[2])+Cos(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[2])),-8);
+  AZ= RoundTo(-(Sin(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[1]+M_PI/2)),-8);
+
+  xyz[1]=AX*xe+AY*ye+AZ*ze;
+
+
+
+
+
+
+  xyz[2]=(-Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1]+M_PI/2)*Cos(Alpha_Beta_Teta[2])+Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[2]))*xe
+  +(Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1]+M_PI/2)*Sin(Alpha_Beta_Teta[2])+Sin(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[2]))*ye
+  +Cos(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[1]+M_PI/2)*ze;
+
+  }
+
+
+   if(1){
+
+	xyz[0]=xe*(Cos(Alpha_Beta_Teta[1])*Cos(Alpha_Beta_Teta[2])) -
+	( ye*Cos( Alpha_Beta_Teta[1])*Sin(Alpha_Beta_Teta[2]))+ze*Sin(Alpha_Beta_Teta[1]);
+
+
+		xyz[1]=xe*(Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1])*Cos(Alpha_Beta_Teta[2])+
+		Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[2]))+ye*(-Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1])*Sin(Alpha_Beta_Teta[2])+
+		Cos(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[2]))+ze*(-Sin(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[1]));
+
+
+
+
+
+
+		xyz[2]=xe*(-Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1])*Cos(Alpha_Beta_Teta[2])+
+		Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[2]))+ye*(Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1])*Sin(Alpha_Beta_Teta[2])+
+		Sin(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[2]))+ze*(Cos(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[1]));
+
+
+   }
+
+}
+
+void Objetos::SetVisao_XY(bool f){
+
+	Visao_XY=f;
+
+}
+//-------------------------------------------------------------------------------------------------------
+
+bool Objetos::GetVisao_XY(){
+
+	return Visao_XY;
+
+}
+//-------------------------------------------------------------------------------------------------------
+
+void Objetos::SetVisao_XZ(bool f){
+
+	Visao_XZ=f;
+
+}
+
+//---------------------------------------------------------------------------------------------------------
+
+bool Objetos::GetVisao_XZ(){
+
+
+	return Visao_XZ;
+
+}
+
+Objetos  *Arquivo::Abrir_Arquivo(char *Nome_Arquivo,TPoint ***RP_Circle,int ***FullMLK1,UnicodeString *Resposta ){
+
+Objetos *Objetos_Atr;
+int **FullMLK=0;
+TPoint **P_Circle=0;
+std::vector<long double> Tmp_MAlpha;
+std::vector<long double> Tmp_LAlpha;
+std::vector<long double> Tmp_MVetor;
+std::vector<long double> Tmp_LVetor;
+std::vector<long double> Tmp_MZo;
+std::vector<long double> Tmp_LZo;
+long double Tmp_ABT[3];
+std::vector<COLORREF> TmpCor_Line;
+
+std::vector<long double> Tmp_A_Atr;
+std::vector<long double> Tmp_B_Atr;
+std::vector<long double> Tmp_AZo_Atr;
+std::vector<long double> Tmp_BZo_Atr;
+std::vector<long double> Tmp_CX;
+std::vector<long double> Tmp_CY;
+std::vector<long double> Tmp_CZ;
+std::vector<long double> Tmp_AnguloX;
+std::vector<long double> Tmp_AnguloY;
+std::vector<long double> Tmp_AnguloZ;
+
+int Tmp_IndexX=0;
+std::vector<COLORREF> Tmp_Color_Circle_Atr;
+std::vector<int> Tmp_TipoElipse_Atr;
+long double Tmp_Alpha_B_T[3];
+
+std::vector<long double> Tmp_MAlphaQ;
+std::vector<long double> Tmp_LAlphaQ;
+std::vector<long double> Tmp_MVetorQ;
+std::vector<long double> Tmp_LVetorQ;
+std::vector<long double> Tmp_MAlphaQ2;
+std::vector<long double> Tmp_LAlphaQ2;
+std::vector<long double> Tmp_MVetorQ2;
+std::vector<long double> Tmp_LVetorQ2;
+std::vector<long double> Tmp_MZoQ;
+std::vector<long double> Tmp_LZoQ;
+std::vector<long double> Tmp_MZoQ2;
+std::vector<long double> Tmp_LZoQ2;
+std::vector<COLORREF> Tmp_CorQ;
+
+int Contador_Line;
+int Contador_Circle;
+int Contador_Quadrilatero;
+		Objetos_Atr=new Objetos[1]();
+
+		ifstream Arquivo_RR(Nome_Arquivo,ios::binary|ios::in);
+
+		if(Arquivo_RR){
+
+
+					Arquivo_RR.read(reinterpret_cast<char*>(&Contador_Line),sizeof(int));
+
+					Arquivo_RR.read(reinterpret_cast<char*>(&Contador_Circle),sizeof(int));
+					Arquivo_RR.read(reinterpret_cast<char*>(&Contador_Quadrilatero),sizeof(int));
+
+					Arquivo_RR.close();
+
+				if((Contador_Line>0)||(Contador_Circle>0)||(Contador_Quadrilatero>0)){
+
+					ifstream Arquivo_RR(Nome_Arquivo,ios::binary|ios::in);
+
+					if(Arquivo_RR){
+
+
+					Arquivo_RR.read(reinterpret_cast<char*>(&Contador_Line),sizeof(int));
+					Arquivo_RR.read(reinterpret_cast<char*>(&Contador_Circle),sizeof(int));
+					Arquivo_RR.read(reinterpret_cast<char*>(&Contador_Quadrilatero),sizeof(int));
+
+					Arquivo_RR.read(reinterpret_cast<char*>(Tmp_Alpha_B_T),3*sizeof(long double));
+
+					Objetos_Atr[0].Lines_Atr->Alocando_Line(Contador_Line+1);
+
+					Objetos_Atr[0].SetAlpha_B_T(Tmp_Alpha_B_T);
+
+
+
+						if(Contador_Line>0){
+
+							Tmp_MAlpha.resize(Contador_Line);
+							Tmp_LAlpha.resize(Contador_Line);
+							Tmp_MVetor.resize(Contador_Line);
+							Tmp_LVetor.resize(Contador_Line);
+							Tmp_MZo.resize(Contador_Line);
+							Tmp_LZo.resize(Contador_Line);
+
+							TmpCor_Line.resize(Contador_Line);
+
+
+
+
+
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MAlpha.data()),Contador_Line*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LAlpha.data()),Contador_Line*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MVetor.data()),Contador_Line*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LVetor.data()),Contador_Line*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MZo.data()),Contador_Line*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LZo.data()),Contador_Line*sizeof(long double));
+
+							Arquivo_RR.read(reinterpret_cast<char *>(TmpCor_Line.data()),Contador_Line*sizeof(COLORREF));
+
+
+
+							Objetos_Atr[0].Lines_Atr->Alocando_Line(Contador_Line);
+							FullMLK=EixoXY->BufFullMLK.Redimensiona(Contador_Line,4);
+							*FullMLK1=FullMLK;
+							for(int i=0;i<Contador_Line;i++){
+
+								Objetos_Atr[0].Lines_Atr->SetContador_Line(Contador_Line);
+								Objetos_Atr[0].Lines_Atr->SetMAlpha_Atr(Tmp_MAlpha[i],i);
+								Objetos_Atr[0].Lines_Atr->SetLAlpha_Atr(Tmp_LAlpha[i],i);
+								Objetos_Atr[0].Lines_Atr->SetMVetor_Atr(Tmp_MVetor[i],i);
+								Objetos_Atr[0].Lines_Atr->SetLVetor_Atr(Tmp_LVetor[i],i);
+								Objetos_Atr[0].Lines_Atr->SetMZo_Atr(Tmp_MZo[i],i);
+								Objetos_Atr[0].Lines_Atr->SetLZo_Atr(Tmp_LZo[i],i);
+								Objetos_Atr[0].Lines_Atr->SetCor_Line(TmpCor_Line[i],i);
+
+							}
+
+
+
+
+
+						}
+
+
+
+						if(Contador_Quadrilatero>0){
+
+							Tmp_MAlphaQ.resize(Contador_Quadrilatero);
+							Tmp_LAlphaQ.resize(Contador_Quadrilatero);
+							Tmp_MVetorQ.resize(Contador_Quadrilatero);
+							Tmp_LVetorQ.resize(Contador_Quadrilatero);
+
+							Tmp_MAlphaQ2.resize(Contador_Quadrilatero);
+							Tmp_LAlphaQ2.resize(Contador_Quadrilatero);
+							Tmp_MVetorQ2.resize(Contador_Quadrilatero);
+							Tmp_LVetorQ2.resize(Contador_Quadrilatero);
+
+							Tmp_MZoQ.resize(Contador_Quadrilatero);
+							Tmp_LZoQ.resize(Contador_Quadrilatero);
+							Tmp_MZoQ2.resize(Contador_Quadrilatero);
+							Tmp_LZoQ2.resize(Contador_Quadrilatero);
+
+							Tmp_CorQ.resize(Contador_Quadrilatero);
+
+
+
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MAlphaQ.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LAlphaQ.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MVetorQ.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LVetorQ.data()),Contador_Quadrilatero*sizeof(long double));
+
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MAlphaQ2.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LAlphaQ2.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MVetorQ2.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LVetorQ2.data()),Contador_Quadrilatero*sizeof(long double));
+
+
+
+
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MZoQ.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LZoQ.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_MZoQ2.data()),Contador_Quadrilatero*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_LZoQ2.data()),Contador_Quadrilatero*sizeof(long double));
+
+
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_CorQ.data()),Contador_Quadrilatero*sizeof(COLORREF));
+
+
+
+							Objetos_Atr[0].Quadrilatero->AlocarQuadrilatero(Contador_Quadrilatero+1);
+
+							EixoXY->FullMLK2=EixoXY->BufFullMLK2.Redimensiona(Contador_Quadrilatero,4);
+							EixoXY->FullMLK3=EixoXY->BufFullMLK3.Redimensiona(Contador_Quadrilatero,4);
+
+							for(int i=0;i<Contador_Quadrilatero;i++){
+
+								Objetos_Atr[0].Quadrilatero->SetContadorQuadrilatero(Contador_Quadrilatero);
+								Objetos_Atr[0].Quadrilatero->SetMAlpha(Tmp_MAlphaQ[i],i);
+								Objetos_Atr[0].Quadrilatero->SetLAlpha(Tmp_LAlphaQ[i],i);
+								Objetos_Atr[0].Quadrilatero->SetMVetor(Tmp_MVetorQ[i],i);
+								Objetos_Atr[0].Quadrilatero->SetLVetor(Tmp_LVetorQ[i],i);
+
+								Objetos_Atr[0].Quadrilatero->SetMAlpha2(Tmp_MAlphaQ2[i],i);
+								Objetos_Atr[0].Quadrilatero->SetLAlpha2(Tmp_LAlphaQ2[i],i);
+								Objetos_Atr[0].Quadrilatero->SetMVetor2(Tmp_MVetorQ2[i],i);
+								Objetos_Atr[0].Quadrilatero->SetLVetor2(Tmp_LVetorQ2[i],i);
+
+								Objetos_Atr[0].Quadrilatero->SetMZo(Tmp_MZoQ[i],i);
+								Objetos_Atr[0].Quadrilatero->SetLZo(Tmp_LZoQ[i],i);
+								Objetos_Atr[0].Quadrilatero->SetMZo2(Tmp_MZoQ2[i],i);
+								Objetos_Atr[0].Quadrilatero->SetLZo2(Tmp_LZoQ2[i],i);
+								Objetos_Atr[0].Quadrilatero->SetCor(Tmp_CorQ[i],i);
+							}
+
+
+						}
+
+
+
+						if(Contador_Circle>0){
+
+							Tmp_A_Atr.resize(Contador_Circle);
+							Tmp_B_Atr.resize(Contador_Circle);
+							Tmp_AZo_Atr.resize(Contador_Circle);
+							Tmp_BZo_Atr.resize(Contador_Circle);
+							Tmp_CX.resize(Contador_Circle);
+							Tmp_CY.resize(Contador_Circle);
+							Tmp_CZ.resize(Contador_Circle);
+							Tmp_Color_Circle_Atr.resize(Contador_Circle);
+							Tmp_TipoElipse_Atr.resize(Contador_Circle);
+							Tmp_AnguloX.resize(Contador_Circle);
+							Tmp_AnguloY.resize(Contador_Circle);
+							Tmp_AnguloZ.resize(Contador_Circle);
+
+
+
+							P_Circle=EixoXY->BufP_Circle.Redimensiona(Contador_Circle,51);
+							*RP_Circle=P_Circle;
+
+							Objetos_Atr[0].Elipse_Atr->AlocaElipse_Atr(Contador_Circle);
+
+
+
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_A_Atr.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_B_Atr.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_AZo_Atr.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_BZo_Atr.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_CX.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_CY.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_CZ.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_TipoElipse_Atr.data()),Contador_Circle*sizeof(int));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_Color_Circle_Atr.data()),Contador_Circle*sizeof(COLORREF));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_AnguloX.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_AnguloY.data()),Contador_Circle*sizeof(long double));
+							Arquivo_RR.read(reinterpret_cast<char *>(Tmp_AnguloZ.data()),Contador_Circle*sizeof(long double));
+
+
+
+							Objetos_Atr[0].Elipse_Atr->SetA_Atr(Tmp_A_Atr.data());
+							Objetos_Atr[0].Elipse_Atr->SetB_Atr(Tmp_B_Atr.data());
+							Objetos_Atr[0].Elipse_Atr->SetAZo_Atr(Tmp_AZo_Atr.data());
+							Objetos_Atr[0].Elipse_Atr->SetBZo_Atr(Tmp_BZo_Atr.data());
+							Objetos_Atr[0].Elipse_Atr->SetCX(Tmp_CX.data());
+							Objetos_Atr[0].Elipse_Atr->SetCY(Tmp_CY.data());
+							Objetos_Atr[0].Elipse_Atr->SetCZ(Tmp_CZ.data());
+							Objetos_Atr[0].Elipse_Atr->SetTipoElipse_Atr(Tmp_TipoElipse_Atr.data());
+							Objetos_Atr[0].Elipse_Atr->SetColor_Circle_Atr(Tmp_Color_Circle_Atr.data());
+							Objetos_Atr[0].Elipse_Atr->SetContadorCircle_Atr(Contador_Circle);
+							Objetos_Atr[0].Elipse_Atr->Set_AnguloX(Tmp_AnguloX.data());
+							Objetos_Atr[0].Elipse_Atr->Set_AnguloY(Tmp_AnguloY.data());
+							Objetos_Atr[0].Elipse_Atr->Set_AnguloZ(Tmp_AnguloZ.data());
+
+							Contador_Circle=Contador_Circle;
+
+
+						}
+
+						// Rotacao das linhas (bloco opcional; arquivos antigos nao tem)
+						if(Contador_Line>0){
+
+							unsigned int Marca=0;
+							int Contador_Angulos=0;
+							Arquivo_RR.read(reinterpret_cast<char *>(&Marca),sizeof(unsigned int));
+							Arquivo_RR.read(reinterpret_cast<char *>(&Contador_Angulos),sizeof(int));
+
+							if((Arquivo_RR)&&(Marca==MarcaAngulos)&&(Contador_Angulos==Contador_Line)){
+
+								std::vector<long double> Tmp_Alpha(Contador_Line);
+								std::vector<long double> Tmp_Beta(Contador_Line);
+								std::vector<long double> Tmp_Teta(Contador_Line);
+
+								Arquivo_RR.read(reinterpret_cast<char *>(Tmp_Alpha.data()),Contador_Line*sizeof(long double));
+								Arquivo_RR.read(reinterpret_cast<char *>(Tmp_Beta.data()),Contador_Line*sizeof(long double));
+								Arquivo_RR.read(reinterpret_cast<char *>(Tmp_Teta.data()),Contador_Line*sizeof(long double));
+
+								if(Arquivo_RR)
+									for(int i=0;i<Contador_Line;i++){
+										Objetos_Atr[0].Lines_Atr->Set_AngluloAlpha(Tmp_Alpha[i],i);
+										Objetos_Atr[0].Lines_Atr->Set_AngluloBeta(Tmp_Beta[i],i);
+										Objetos_Atr[0].Lines_Atr->Set_AngluloTeta(Tmp_Teta[i],i);
+									}
+
+							}
+						}
+
+						*Resposta="Sucesso "+ AnsiString(Nome_Arquivo);
+
+						Arquivo_RR.close();
+
+					}else{
+
+							*Resposta="Erro ao Abrir Arquivo!";
+							Arquivo_RR.close();
+
+						}
+
+
+
+
+
+
+
+
+
+
+
+				}
+
+
+
+			   return Objetos_Atr;
+
+		}else{
+
+
+
+				 Arquivo_RR.close();
+				 return Objetos_Atr;
+
+			}
+
+
+
+
+
+
+
+
+
+}
+
+void Arquivo::Salvar_Arquivo(char *Nome_Arquivo,Objetos *Objetos_Atr,UnicodeString *Resposta){
+
+int Contador_Line=Objetos_Atr[0].Lines_Atr->GetContador_Line();
+int Contador_Circle=Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr();
+int Contador_Quadrilatero=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+
+	if((Contador_Line>0)||(Contador_Circle>0)||(Contador_Quadrilatero>0)){
+
+		ofstream Arquivo_WR(Nome_Arquivo,ios::binary);
+
+		if(!Arquivo_WR){
+
+			*Resposta="Erro ao Salvar Arquivo!";
+
+			}else{
+
+
+
+					Arquivo_WR.write(reinterpret_cast<const char*>(&Contador_Line),sizeof(int));
+					Arquivo_WR.write(reinterpret_cast<const char*>(&Contador_Circle),sizeof(int));
+					Arquivo_WR.write(reinterpret_cast<const char*>(&Contador_Quadrilatero),sizeof(int));
+					Arquivo_WR.write(reinterpret_cast<const char*>(Objetos_Atr[0].GetAlpha_B_T()),3*sizeof(long double));
+
+
+					if(Contador_Line>0){
+
+
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetMAlpha_Atr()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetLAlpha_Atr()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetMVetor_Atr()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetLVetor_Atr()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetMZo_Atr()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetLZo_Atr()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetCor_Line()),Contador_Line*sizeof(COLORREF));
+
+					}
+
+					if(Contador_Quadrilatero>0){
+
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetMAlpha()),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetLAlpha()),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetMVetor()),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetLVetor()),Contador_Quadrilatero*sizeof(long double));
+
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetMAlpha2()),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetLAlpha2()),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetMVetor2()),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetLVetor2()),Contador_Quadrilatero*sizeof(long double));
+
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetMZo() ),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetLZo() ),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetMZo2() ),Contador_Quadrilatero*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetLZo2() ),Contador_Quadrilatero*sizeof(long double));
+
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Quadrilatero->GetCor() ),Contador_Quadrilatero*sizeof(COLORREF));
+
+
+
+
+					}
+
+
+
+
+
+                    if (Contador_Circle>0) {
+
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetA_Atr()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetB_Atr()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetAZo_Atr()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetBZo_Atr()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetCX()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetCY()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetCZ()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetTipoElipse_Atr()),Contador_Circle*sizeof(int));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetColor_Circle_Atr()),Contador_Circle*sizeof(COLORREF));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetAnguloX()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetAnguloY()),Contador_Circle*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Elipse_Atr->GetAnguloZ()),Contador_Circle*sizeof(long double));
+
+					}
+
+
+					// Bloco extra no fim do arquivo: rotacao de cada linha (Alpha, Beta, Teta).
+					// Versoes antigas do programa param de ler antes dele e o ignoram.
+					if(Contador_Line>0){
+
+						unsigned int Marca=MarcaAngulos;
+						Arquivo_WR.write(reinterpret_cast<const char *>(&Marca),sizeof(unsigned int));
+						Arquivo_WR.write(reinterpret_cast<const char *>(&Contador_Line),sizeof(int));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetAngloAlpha()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetAngloBeta()),Contador_Line*sizeof(long double));
+						Arquivo_WR.write(reinterpret_cast<const char *>(Objetos_Atr[0].Lines_Atr->GetAngloTeta()),Contador_Line*sizeof(long double));
+					}
+
+                    *Resposta="Sucesso "+AnsiString(Nome_Arquivo);
+					Arquivo_WR.close();
+
+
+		
+
+
+
+				}
+
+
+		}
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Elipse::Elipse(){
+
+			ContadorCircle_Atr=0;
+
+			for(int i=0;i<3;i++)
+			Alpha_Beta_Teta_Circle_Atr[i]=0;
+
+			IndexY=0;
+			IndexZ=0;
+
+
+
+
+
+
+
+}
+//---------------------------------------------------------------------------------------
+void Elipse::Limpa_Elipse(){
+
+	std::fill(AnguloX.begin(),AnguloX.begin()+std::min((size_t)ContadorCircle_Atr,AnguloX.size()),(long double)0);
+
+}
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+
+long double Elipse::GetBZo_Atr(int Index){
+
+	return LerVetor(BZo_Atr,Index);
+
+}
+
+long double Elipse::GetAZo_Atr(int Index){
+
+	return LerVetor(AZo_Atr,Index);
+
+}
+
+void Elipse::GetCenter_Atr(long double **Center,int Index){
+
+	if(Center==0 || !Center_Atr.LinhaValida(Index))
+		return;
+
+	Center[Index][0]=Center_Atr[Index][0];
+	Center[Index][1]=Center_Atr[Index][1];
+	Center[Index][2]=Center_Atr[Index][2];
+
+}
+
+COLORREF Elipse::GetColor_Circle_Atr(int Index){
+
+    return LerVetor(Color_Circle_Atr,Index);
+
+}
+long double Elipse::GetA_Atr(int Index){
+
+	return LerVetor(A_Atr,Index);
+}
+
+long double Elipse::GetB_Atr(int Index){
+
+	return LerVetor(B_Atr,Index);
+}
+
+void Elipse::AlocaElipse_Atr(int Count){
+
+	if(Count<=0)
+		return;
+
+	// resize mantem os valores ja guardados e zera as posicoes novas
+	AZo_Atr.resize(Count);
+	BZo_Atr.resize(Count);
+	A_Atr.resize(Count);
+	B_Atr.resize(Count);
+	CX.resize(Count);
+	CY.resize(Count);
+	CZ.resize(Count);
+	Color_Circle_Atr.resize(Count);
+	TipoElipse_Atr.resize(Count);
+	IndexX.resize(Count);
+	AnguloX.resize(Count);
+	AnguloY.resize(Count);
+	AnguloZ.resize(Count);
+	Center_Atr.Redimensiona(Count,3);
+
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetContadorCircle_Atr(int CCircle){
+
+	ContadorCircle_Atr=CCircle;
+
+
+
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+int Elipse::GetContadorCircle_Atr(){
+
+return ContadorCircle_Atr;
+
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetCenter_Atr(long double **C_Atr){
+
+
+	// copia os centros de C_Atr (antes guardava o ponteiro)
+	if(C_Atr!=0)
+		for(int i=0;i<Center_Atr.GetLinhas();i++)
+			for(int k=0;k<3;k++)
+				Center_Atr[i][k]=C_Atr[i][k];
+
+
+}
+//--------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetCenter_Atr(long double **C_Atr,int Count){
+	if(C_Atr==0 || Count<0)
+		return;
+	if(Count>=Center_Atr.GetLinhas())
+		Center_Atr.Redimensiona(Count+1,3);
+	for(int i=0;i<3;i++)
+	Center_Atr[Count][i]=C_Atr[Count][i];
+
+}
+
+void Elipse::SetCenter_Atr(long double Xo,long double Yo,long double Zo,int Index){
+
+	if(Index<0)
+		return;
+	if(Index>=Center_Atr.GetLinhas())
+		Center_Atr.Redimensiona(Index+1,3);
+
+	Center_Atr[Index][0]=Xo;
+	Center_Atr[Index][1]=Yo;
+	Center_Atr[Index][2]=Zo;
+
+}
+
+//------------------------------------------------------------------------------
+
+void Elipse::SetAZo_Atr(long double AZo,int Count){
+
+	GravarVetor(AZo_Atr,Count,AZo);
+
+}
+
+//------------------------------------------------------------------------------
+void Elipse::SetBZo_Atr(long double BZo,int Count){
+
+GravarVetor(BZo_Atr,Count,BZo);
+
+}
+//------------------------------------------------------------------------------
+
+void Elipse::SetA_Atr(long double A,int Count){
+
+	GravarVetor(A_Atr,Count,A);
+
+}
+//------------------------------------------------------------------------------
+
+void Elipse::SetB_Atr(long double B,int Count){
+
+
+	GravarVetor(B_Atr,Count,B);
+
+}
+
+//------------------------------------------------------------------------------
+
+void Elipse::SetColor_Circle_Atr(COLORREF Color,int Count){
+
+	GravarVetor(Color_Circle_Atr,Count,TColorParaCOLORREF(Color));
+
+}
+
+//------------------------------------------------------------------------------
+
+void Elipse::SetTipoElipse_Atr(int T_Elipse,int Count ){
+
+	GravarVetor(TipoElipse_Atr,Count,T_Elipse);
+
+}
+
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+
+
+long double **Elipse::GetCenter_Atr(){
+
+	return Center_Atr.Ponteiros();
+
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetAZo_Atr(long double *_AZo_Atr){
+
+	CopiaVetor(AZo_Atr,_AZo_Atr);
+
+
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+long double *Elipse::GetAZo_Atr(){
+
+
+
+	return AZo_Atr.data();
+
+}
+//---------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetBZo_Atr(long double *_BZo_Atr){
+
+	CopiaVetor(BZo_Atr,_BZo_Atr);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+long double * Elipse::GetBZo_Atr(){
+
+	return BZo_Atr.data();
+
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetA_Atr(long double * _A_Atr){
+
+	CopiaVetor(A_Atr,_A_Atr);
+
+
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+long double * Elipse::GetA_Atr(){
+
+	return A_Atr.data();
+
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetB_Atr(long double * _B_Atr){
+
+	CopiaVetor(B_Atr,_B_Atr);
+
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+long double * Elipse::GetB_Atr(){
+
+	return B_Atr.data();
+}
+//------------------------------------------------------------------------------
+void Elipse::SetCX(long double _CX,int Index){
+
+	GravarVetor(CX,Index,_CX);
+
+}
+//------------------------------------------------------------------------------
+
+void Elipse::SetCX(long double *_CX){
+
+	CopiaVetor(CX,_CX);
+
+}
+
+//------------------------------------------------------------------------------
+
+long double Elipse::GetCX(int Index){
+
+	return LerVetor(CX,Index);
+
+}
+//------------------------------------------------------------------------------
+
+long double *Elipse::GetCX(){
+
+	return CX.data();
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetCY(long double _CY,int Index){
+
+	GravarVetor(CY,Index,_CY);
+
+}
+
+//------------------------------------------------------------------------------
+
+void Elipse::SetCY(long double *_CY){
+
+	CopiaVetor(CY,_CY);
+}
+//------------------------------------------------------------------------------
+long double Elipse::GetCY(int Index){
+
+	return LerVetor(CY,Index);
+}
+//------------------------------------------------------------------------------
+
+long double *Elipse::GetCY(){
+
+	return CY.data();
+}
+//------------------------------------------------------------------------------
+void Elipse::SetCZ(long double _CZ,int Index){
+
+	GravarVetor(CZ,Index,_CZ);
+}
+
+//------------------------------------------------------------------------------
+void Elipse::SetCZ(long double *_CZ){
+
+	CopiaVetor(CZ,_CZ);
+}
+//------------------------------------------------------------------------------
+long double Elipse::GetCZ(int Index){
+
+
+	return LerVetor(CZ,Index);
+}
+//------------------------------------------------------------------------------
+long double *Elipse::GetCZ(){
+
+	return CZ.data();
+
+}
+
+//------------------------------------------------------------------------------
+
+void Elipse::SetColor_Circle_Atr(COLORREF *CC_Atr){
+
+	CopiaVetor(Color_Circle_Atr,CC_Atr);
+	NormalizaCores(Color_Circle_Atr);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+COLORREF *Elipse::GetColor_Circle_Atr(){
+
+	return Color_Circle_Atr.data();
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetAlpha_Beta_Teta_Circle_Atr(long double ABT_Atr[3]){
+
+for(int i=0;i<3;i++)
+Alpha_Beta_Teta_Circle_Atr[i]=ABT_Atr[i];
+
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+
+long double  *Elipse::GetAlpha_Beta_Teta_Atr(){
+
+return Alpha_Beta_Teta_Circle_Atr;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+void Elipse::SetTipoElipse_Atr(int * TElipse_Atr){
+
+CopiaVetor(TipoElipse_Atr,TElipse_Atr);
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+int * Elipse::GetTipoElipse_Atr(){
+
+return TipoElipse_Atr.data();
+
+}
+
+//------------------------------------------------------------------------------
+
+int Elipse::GetTipoElipse_Atr(int Index){
+
+	return LerVetor(TipoElipse_Atr,Index);
+
+}
+
+void Elipse::Set_AnguloX(long double * IAnguloX){
+
+int i=0;
+
+	if(IAnguloX==0)
+		return;
+
+	for(i=0;i<ContadorCircle_Atr && i<(int)AnguloX.size();i++)
+		AnguloX[i]=IAnguloX[i];
+}
+
+void Elipse::Set_AnguloX(long double IAngulo,int Index){
+
+	GravarVetor(AnguloX,Index,IAngulo);
+
+}
+
+void Elipse::Set_AnguloY(long double *IAnguloY){
+
+	CopiaVetor(AnguloY,IAnguloY);
+}
+
+void Elipse::Set_AnguloY(long double IAnguloY,int Index){
+
+	GravarVetor(AnguloY,Index,IAnguloY);
+}
+
+long double Elipse::GetAnguloX(int AIndex){
+
+	return LerVetor(AnguloX,AIndex);
+
+}
+void Elipse::Set_AnguloZ(long double *IAnguloZ){
+
+	CopiaVetor(AnguloZ,IAnguloZ);
+}
+
+void Elipse::Set_AnguloZ(long double IAnguloZ,int Index){
+
+	GravarVetor(AnguloZ,Index,IAnguloZ);
+}
+
+
+
+
+long double *Elipse::GetAnguloX(){
+
+	return AnguloX.data();
+}
+long double *Elipse::GetAnguloY(){
+
+	return AnguloY.data();
+
+}
+long double *Elipse::GetAnguloZ(){
+
+	return AnguloZ.data();
+
+}
+void Elipse::Set_IndexX(int *IIndexX){
+
+	CopiaVetor(IndexX,IIndexX);
+
+}
+void Elipse::Set_IndexX(int IIndexX,int Index){
+
+	GravarVetor(IndexX,Index,IIndexX);
+
+}
+
+int *Elipse::GetIndexX(){
+
+	return IndexX.data();
+
+}
+
+int Elipse::GetIndexX(int Index){
+
+	return LerVetor(IndexX,Index);
+
+}
+
+void Elipse::Set_IndexY(int IIndexY){
+
+	IndexY=IIndexY;
+
+}
+
+int Elipse::GetIndexY(){
+
+	return IndexY;
+
+}
+
+long double Elipse::GetAnguloY(int Index){
+	return LerVetor(AnguloY,Index);
+
+}
+
+long double Elipse::GetAnguloZ(int Index){
+	return LerVetor(AnguloZ,Index);
+
+}
+
+//------------------------------------------------------------------------------
+// Elipse: Get/Set do vetor inteiro de cada membro
+//------------------------------------------------------------------------------
+const std::vector<long double> &Elipse::GetVetor_AZo_Atr()const{
+
+	return AZo_Atr;
+
+}
+void Elipse::SetVetor_AZo_Atr(const std::vector<long double> &Valores){
+
+	AZo_Atr=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_BZo_Atr()const{
+
+	return BZo_Atr;
+
+}
+void Elipse::SetVetor_BZo_Atr(const std::vector<long double> &Valores){
+
+	BZo_Atr=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_A_Atr()const{
+
+	return A_Atr;
+
+}
+void Elipse::SetVetor_A_Atr(const std::vector<long double> &Valores){
+
+	A_Atr=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_B_Atr()const{
+
+	return B_Atr;
+
+}
+void Elipse::SetVetor_B_Atr(const std::vector<long double> &Valores){
+
+	B_Atr=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_CX()const{
+
+	return CX;
+
+}
+void Elipse::SetVetor_CX(const std::vector<long double> &Valores){
+
+	CX=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_CY()const{
+
+	return CY;
+
+}
+void Elipse::SetVetor_CY(const std::vector<long double> &Valores){
+
+	CY=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_CZ()const{
+
+	return CZ;
+
+}
+void Elipse::SetVetor_CZ(const std::vector<long double> &Valores){
+
+	CZ=Valores;
+
+}
+
+const std::vector<COLORREF> &Elipse::GetVetor_Color_Circle_Atr()const{
+
+	return Color_Circle_Atr;
+
+}
+void Elipse::SetVetor_Color_Circle_Atr(const std::vector<COLORREF> &Valores){
+
+	Color_Circle_Atr=Valores;
+	NormalizaCores(Color_Circle_Atr);
+
+}
+
+const std::vector<int> &Elipse::GetVetor_TipoElipse_Atr()const{
+
+	return TipoElipse_Atr;
+
+}
+void Elipse::SetVetor_TipoElipse_Atr(const std::vector<int> &Valores){
+
+	TipoElipse_Atr=Valores;
+
+}
+
+const std::vector<int> &Elipse::GetVetor_IndexX()const{
+
+	return IndexX;
+
+}
+void Elipse::SetVetor_IndexX(const std::vector<int> &Valores){
+
+	IndexX=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_AnguloX()const{
+
+	return AnguloX;
+
+}
+void Elipse::SetVetor_AnguloX(const std::vector<long double> &Valores){
+
+	AnguloX=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_AnguloY()const{
+
+	return AnguloY;
+
+}
+void Elipse::SetVetor_AnguloY(const std::vector<long double> &Valores){
+
+	AnguloY=Valores;
+
+}
+
+const std::vector<long double> &Elipse::GetVetor_AnguloZ()const{
+
+	return AnguloZ;
+
+}
+void Elipse::SetVetor_AnguloZ(const std::vector<long double> &Valores){
+
+	AnguloZ=Valores;
+
+}
+
+
+//------------------------------------------------------------------------------
+// Line: Get/Set do vetor inteiro de cada membro
+//------------------------------------------------------------------------------
+const std::vector<long double> &Line::GetVetor_MAlpha_Atr()const{
+
+	return MAlpha_Atr;
+
+}
+void Line::SetVetor_MAlpha_Atr(const std::vector<long double> &Valores){
+
+	MAlpha_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_MVetor_Atr()const{
+
+	return MVetor_Atr;
+
+}
+void Line::SetVetor_MVetor_Atr(const std::vector<long double> &Valores){
+
+	MVetor_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_LAlpha_Atr()const{
+
+	return LAlpha_Atr;
+
+}
+void Line::SetVetor_LAlpha_Atr(const std::vector<long double> &Valores){
+
+	LAlpha_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_LVetor_Atr()const{
+
+	return LVetor_Atr;
+
+}
+void Line::SetVetor_LVetor_Atr(const std::vector<long double> &Valores){
+
+	LVetor_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_MXo_Atr(){
+
+	CalculaXoYo();			// x e y saem do Alpha/Vetor polar
+
+	return MXo_Atr;
+
+}
+void Line::SetVetor_MXo_Atr(const std::vector<long double> &Valores){
+
+	// sera recalculado do Alpha/Vetor polar no proximo CalculaXoYo
+	MXo_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_MYo_Atr(){
+
+	CalculaXoYo();			// x e y saem do Alpha/Vetor polar
+
+	return MYo_Atr;
+
+}
+void Line::SetVetor_MYo_Atr(const std::vector<long double> &Valores){
+
+	// sera recalculado do Alpha/Vetor polar no proximo CalculaXoYo
+	MYo_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_MZo_Atr()const{
+
+	return MZo_Atr;
+
+}
+void Line::SetVetor_MZo_Atr(const std::vector<long double> &Valores){
+
+	MZo_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_LXo_Atr(){
+
+	CalculaXoYo();			// x e y saem do Alpha/Vetor polar
+
+	return LXo_Atr;
+
+}
+void Line::SetVetor_LXo_Atr(const std::vector<long double> &Valores){
+
+	// sera recalculado do Alpha/Vetor polar no proximo CalculaXoYo
+	LXo_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_LYo_Atr(){
+
+	CalculaXoYo();			// x e y saem do Alpha/Vetor polar
+
+	return LYo_Atr;
+
+}
+void Line::SetVetor_LYo_Atr(const std::vector<long double> &Valores){
+
+	// sera recalculado do Alpha/Vetor polar no proximo CalculaXoYo
+	LYo_Atr=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_LZo_Atr()const{
+
+	return LZo_Atr;
+
+}
+void Line::SetVetor_LZo_Atr(const std::vector<long double> &Valores){
+
+	LZo_Atr=Valores;
+
+}
+
+const std::vector<COLORREF> &Line::GetVetor_Cor_Line()const{
+
+	return Cor_Line;
+
+}
+void Line::SetVetor_Cor_Line(const std::vector<COLORREF> &Valores){
+
+	Cor_Line=Valores;
+	NormalizaCores(Cor_Line);
+
+}
+
+const std::vector<long double> &Line::GetVetor_Angulo_Alpha()const{
+
+	return Angulo_Alpha;
+
+}
+void Line::SetVetor_Angulo_Alpha(const std::vector<long double> &Valores){
+
+	Angulo_Alpha=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_Angulo_Beta()const{
+
+	return Angulo_Beta;
+
+}
+void Line::SetVetor_Angulo_Beta(const std::vector<long double> &Valores){
+
+	Angulo_Beta=Valores;
+
+}
+
+const std::vector<long double> &Line::GetVetor_Angulo_Teta()const{
+
+	return Angulo_Teta;
+
+}
+void Line::SetVetor_Angulo_Teta(const std::vector<long double> &Valores){
+
+	Angulo_Teta=Valores;
+
+}
+
+
+//---------------------------------------------------------------------------
+// ExportGLB: liga as classes do desenho ao modulo GLB (glTF 2.0 binario)
+//---------------------------------------------------------------------------
+
+Name_Arquivos::ExportGLB::ExportGLB(){
+
+	Escala=GLB::EscalaPadrao;
+
+}
+
+void Name_Arquivos::ExportGLB::Exportar(UnicodeString Nome_Arquivo,Objetos *Objetos_Atr,UnicodeString *Resposta){
+
+GLB::Desenho D;
+std::string Erro;
+Line *Linhas=Objetos_Atr[0].Lines_Atr;
+TQuadrilatero *Quad=Objetos_Atr[0].Quadrilatero;
+Elipse *Elipses=Objetos_Atr[0].Elipse_Atr;
+
+	for(int i=0;i<3;i++)
+		D.Alpha_B_T[i]=Objetos_Atr[0].GetAlpha_B_T(i);
+
+	for(int i=0;i<Linhas->GetContador_Line();i++){
+
+		GLB::Linha L;
+		L.MAlpha=Linhas->GetMAlpha_Atr(i);
+		L.MVetor=Linhas->GetMVetor_Atr(i);
+		L.MZo=Linhas->GetMZo_Atr(i);
+		L.LAlpha=Linhas->GetLAlpha_Atr(i);
+		L.LVetor=Linhas->GetLVetor_Atr(i);
+		L.LZo=Linhas->GetLZo_Atr(i);
+		L.Cor=Linhas->GetCor_Line(i);
+		L.AnguloAlpha=Linhas->GetAnguloAlpha(i);
+		L.AnguloBeta=Linhas->GetAnguloBeta(i);
+		L.AnguloTeta=Linhas->GetAnguloTeta(i);
+		D.Linhas.push_back(L);
+	}
+
+	for(int i=0;i<Quad->GetContadorQuadrilatero();i++){
+
+		GLB::Quadrilatero Q;
+		Q.MAlpha=Quad->GetMAlpha(i);
+		Q.MVetor=Quad->GetMVetor(i);
+		Q.MZo=Quad->GetMZo(i);
+		Q.LAlpha=Quad->GetLAlpha(i);
+		Q.LVetor=Quad->GetLVetor(i);
+		Q.LZo=Quad->GetLZo(i);
+		Q.MAlpha2=Quad->GetMAlpha2(i);
+		Q.MVetor2=Quad->GetMVetor2(i);
+		Q.MZo2=Quad->GetMZo2(i);
+		Q.LAlpha2=Quad->GetLAlpha2(i);
+		Q.LVetor2=Quad->GetLVetor2(i);
+		Q.LZo2=Quad->GetLZo2(i);
+		Q.Cor=Quad->GetCor(i);
+		D.Quadrilateros.push_back(Q);
+	}
+
+	for(int i=0;i<Elipses->GetContadorCircle_Atr();i++){
+
+		GLB::Elipse E;
+		E.A=Elipses->GetA_Atr(i);
+		E.B=Elipses->GetB_Atr(i);
+		E.AZo=Elipses->GetAZo_Atr(i);
+		E.BZo=Elipses->GetBZo_Atr(i);
+		E.CX=Elipses->GetCX(i);
+		E.CY=Elipses->GetCY(i);
+		E.CZ=Elipses->GetCZ(i);
+		E.Tipo=Elipses->GetTipoElipse_Atr(i);
+		E.Cor=Elipses->GetColor_Circle_Atr(i);
+
+		// so o angulo do plano da elipse e usado (os outros podem estar sem valor)
+		E.AnguloX=(E.Tipo==0)?Elipses->GetAnguloX(i):0;
+		E.AnguloZ=(E.Tipo==1)?Elipses->GetAnguloZ(i):0;
+		E.AnguloY=(E.Tipo==2)?Elipses->GetAnguloY(i):0;
+		D.Elipses.push_back(E);
+	}
+
+	if(GLB::Exportar(Nome_Arquivo.c_str(),D,(double)Escala,Erro))
+		*Resposta="Exportado: "+Nome_Arquivo+"\n"+
+				  IntToStr((int)D.Linhas.size())+" linhas, "+
+				  IntToStr((int)D.Quadrilateros.size())+" quadrilateros, "+
+				  IntToStr((int)D.Elipses.size())+" elipses";
+	else
+		*Resposta="Erro ao exportar: "+UnicodeString(Erro.c_str());
+
+}
+
+Objetos *Name_Arquivos::ExportGLB::Importar(UnicodeString Nome_Arquivo,UnicodeString *Resposta){
+
+GLB::Desenho D;
+std::string Erro;
+long double ABT[3];
+
+	if(!GLB::Importar(Nome_Arquivo.c_str(),D,(double)Escala,Erro)){
+		*Resposta="Erro ao importar: "+UnicodeString(Erro.c_str());
+		return NULL;
+	}
+
+	Objetos *Objetos_Atr=new Objetos[1]();
+
+	for(int i=0;i<3;i++)
+		ABT[i]=D.Alpha_B_T[i];
+	Objetos_Atr[0].SetAlpha_B_T(ABT);
+
+	int Contador_Line=(int)D.Linhas.size();
+	int Contador_Quadrilatero=(int)D.Quadrilateros.size();
+	int Contador_Circle=(int)D.Elipses.size();
+
+	if(Contador_Line>0){
+
+		Line *Linhas=Objetos_Atr[0].Lines_Atr;
+		Linhas->Alocando_Line(Contador_Line+10);
+
+		for(int i=0;i<Contador_Line;i++){
+
+			const GLB::Linha &L=D.Linhas[i];
+			Linhas->SetMAlpha_Atr(L.MAlpha,i);
+			Linhas->SetMVetor_Atr(L.MVetor,i);
+			Linhas->SetMZo_Atr(L.MZo,i);
+			Linhas->SetLAlpha_Atr(L.LAlpha,i);
+			Linhas->SetLVetor_Atr(L.LVetor,i);
+			Linhas->SetLZo_Atr(L.LZo,i);
+			Linhas->SetMXo_Atr(std::cos(L.MAlpha)*L.MVetor,i);
+			Linhas->SetMYo_Atr(std::sin(L.MAlpha)*L.MVetor,i);
+			Linhas->SetLXo_Atr(std::cos(L.LAlpha)*L.LVetor,i);
+			Linhas->SetLYo_Atr(std::sin(L.LAlpha)*L.LVetor,i);
+			Linhas->SetCor_Line(L.Cor,i);
+			Linhas->Set_AngluloAlpha(L.AnguloAlpha,i);
+			Linhas->Set_AngluloBeta(L.AnguloBeta,i);
+			Linhas->Set_AngluloTeta(L.AnguloTeta,i);
+		}
+
+		Linhas->SetContador_Line(Contador_Line);
+	}
+
+	if(Contador_Quadrilatero>0){
+
+		TQuadrilatero *Quad=Objetos_Atr[0].Quadrilatero;
+		Quad->AlocarQuadrilatero(Contador_Quadrilatero+10);
+
+		for(int i=0;i<Contador_Quadrilatero;i++){
+
+			const GLB::Quadrilatero &Q=D.Quadrilateros[i];
+			Quad->SetMAlpha(Q.MAlpha,i);
+			Quad->SetMVetor(Q.MVetor,i);
+			Quad->SetMZo(Q.MZo,i);
+			Quad->SetLAlpha(Q.LAlpha,i);
+			Quad->SetLVetor(Q.LVetor,i);
+			Quad->SetLZo(Q.LZo,i);
+			Quad->SetMAlpha2(Q.MAlpha2,i);
+			Quad->SetMVetor2(Q.MVetor2,i);
+			Quad->SetMZo2(Q.MZo2,i);
+			Quad->SetLAlpha2(Q.LAlpha2,i);
+			Quad->SetLVetor2(Q.LVetor2,i);
+			Quad->SetLZo2(Q.LZo2,i);
+			Quad->SetMXo(std::cos(Q.MAlpha)*Q.MVetor,i);
+			Quad->SetMYo(std::sin(Q.MAlpha)*Q.MVetor,i);
+			Quad->SetLXo(std::cos(Q.LAlpha)*Q.LVetor,i);
+			Quad->SetLYo(std::sin(Q.LAlpha)*Q.LVetor,i);
+			Quad->SetMXo2(std::cos(Q.MAlpha2)*Q.MVetor2,i);
+			Quad->SetMYo2(std::sin(Q.MAlpha2)*Q.MVetor2,i);
+			Quad->SetLXo2(std::cos(Q.LAlpha2)*Q.LVetor2,i);
+			Quad->SetLYo2(std::sin(Q.LAlpha2)*Q.LVetor2,i);
+			Quad->SetCor(Q.Cor,i);
+		}
+
+		Quad->SetContadorQuadrilatero(Contador_Quadrilatero);
+	}
+
+	if(Contador_Circle>0){
+
+		Elipse *Elipses=Objetos_Atr[0].Elipse_Atr;
+		Elipses->AlocaElipse_Atr(Contador_Circle);
+
+		for(int i=0;i<Contador_Circle;i++){
+
+			const GLB::Elipse &E=D.Elipses[i];
+			Elipses->SetA_Atr(E.A,i);
+			Elipses->SetB_Atr(E.B,i);
+			Elipses->SetAZo_Atr(E.AZo,i);
+			Elipses->SetBZo_Atr(E.BZo,i);
+			Elipses->SetCX(E.CX,i);
+			Elipses->SetCY(E.CY,i);
+			Elipses->SetCZ(E.CZ,i);
+			Elipses->SetCenter_Atr(E.CX,E.CY,E.CZ,i);
+			Elipses->Set_AnguloX(E.AnguloX,i);
+			Elipses->Set_AnguloY(E.AnguloY,i);
+			Elipses->Set_AnguloZ(E.AnguloZ,i);
+			Elipses->SetTipoElipse_Atr(E.Tipo,i);
+			Elipses->SetColor_Circle_Atr(E.Cor,i);
+		}
+
+		Elipses->SetContadorCircle_Atr(Contador_Circle);
+	}
+
+	*Resposta="Importado: "+Nome_Arquivo+"\n"+
+			  IntToStr(Contador_Line)+" linhas, "+
+			  IntToStr(Contador_Quadrilatero)+" quadrilateros, "+
+			  IntToStr(Contador_Circle)+" elipses";
+
+	return Objetos_Atr;
+}
