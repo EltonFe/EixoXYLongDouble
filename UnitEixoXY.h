@@ -73,6 +73,9 @@ __published:	// IDE-managed Components
 	TMenuItem *Export1;
 	TMenuItem *ExportarGLB1;
 	TMenuItem *ImportarGLB1;
+	TLabel *LblZo;
+	TLabel *LblYo;
+	TLabel *LblXo;
 	void __fastcall FormMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);
 	void __fastcall FormMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
           int X, int Y);

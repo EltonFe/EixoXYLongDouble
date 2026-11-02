@@ -131,7 +131,7 @@ object EixoXY: TEixoXY
       ShowCaption = False
       TabOrder = 2
       object LblDivisao: TLabel
-        Left = 150
+        Left = 162
         Top = 55
         Width = 240
         Height = 33
@@ -144,23 +144,44 @@ object EixoXY: TEixoXY
         ParentFont = False
       end
       object LablVelocidadeInicial: TLabel
-        Left = 150
+        Left = 157
         Top = 52
         Width = 123
         Height = 19
         Caption = 'Velocidade Inicial'
       end
       object LbelAngulo: TLabel
-        Left = 150
+        Left = 157
         Top = 77
         Width = 51
         Height = 19
         Caption = 'Angulo'
       end
+      object LblZo: TLabel
+        Left = 110
+        Top = 79
+        Width = 39
+        Height = 19
+        Caption = 'LblZo'
+      end
+      object LblYo: TLabel
+        Left = 110
+        Top = 45
+        Width = 40
+        Height = 19
+        Caption = 'LblYo'
+      end
+      object LblXo: TLabel
+        Left = 112
+        Top = 13
+        Width = 39
+        Height = 19
+        Caption = 'LblXo'
+      end
       object EdtXo: TEdit
         Left = 8
         Top = 8
-        Width = 121
+        Width = 97
         Height = 27
         Enabled = False
         TabOrder = 0
@@ -169,7 +190,7 @@ object EixoXY: TEixoXY
       object EdtYo: TEdit
         Left = 8
         Top = 41
-        Width = 121
+        Width = 97
         Height = 27
         Enabled = False
         TabOrder = 1
@@ -178,14 +199,14 @@ object EixoXY: TEixoXY
       object EdtZo: TEdit
         Left = 8
         Top = 74
-        Width = 121
+        Width = 97
         Height = 27
         TabOrder = 2
         Text = '0,0'
       end
       object BtnLancar: TButton
-        Left = 150
-        Top = 12
+        Left = 160
+        Top = 8
         Width = 102
         Height = 37
         Caption = 'BtnLancar'
@@ -193,15 +214,15 @@ object EixoXY: TEixoXY
         OnClick = BtnLancarClick
       end
       object EdtVelocidadeInicial: TEdit
-        Left = 287
-        Top = 41
+        Left = 292
+        Top = 36
         Width = 121
         Height = 27
         TabOrder = 4
         Text = '100'
       end
       object EdtAngulo: TEdit
-        Left = 287
+        Left = 292
         Top = 77
         Width = 121
         Height = 27
