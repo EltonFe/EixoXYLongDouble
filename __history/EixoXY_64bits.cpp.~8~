@@ -1,0 +1,45 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+#include <tchar.h>
+//---------------------------------------------------------------------------
+USEFORM("Render.cpp", Form1);
+USEFORM("UnitConstrucaoLine.cpp", ConstrucaoLines);
+USEFORM("UnitEixoXY.cpp", EixoXY);
+USEFORM("UnitElipse.cpp", FElipse);
+USEFORM("DrawCursor.cpp", FDrawCursor);
+USEFORM("draw\DrawUnit.cpp", Form2);
+//---------------------------------------------------------------------------
+int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
+{
+	try
+	{
+		Application->Initialize();
+		Application->MainFormOnTaskBar = true;
+		Application->CreateForm(__classid(TEixoXY), &EixoXY);
+		Application->CreateForm(__classid(TConstrucaoLines), &ConstrucaoLines);
+		Application->CreateForm(__classid(TFElipse), &FElipse);
+		Application->CreateForm(__classid(TFDrawCursor), &FDrawCursor);
+		Application->CreateForm(__classid(TForm1), &Form1);
+		Application->CreateForm(__classid(TForm2), &Form2);
+		Application->Run();
+	}
+	catch (Exception &exception)
+	{
+		Application->ShowException(&exception);
+	}
+	catch (...)
+	{
+		try
+		{
+			throw Exception("");
+		}
+		catch (Exception &exception)
+		{
+			Application->ShowException(&exception);
+		}
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------

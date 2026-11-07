@@ -614,4 +614,6 @@
   c:\program\ files\ (x86)\c++builder\include\windows\sdk\gl\glu.h \
   C:\EixoXYLongInt\EixoXYLongDouble/UnitEixoXY.h \
   C:\EixoXYLongInt\EixoXYLongDouble/UnitConstrucaoLine.h \
-  C:\EixoXYLongInt\EixoXYLongDouble/UnitElipse.h
+  C:\EixoXYLongInt\EixoXYLongDouble/UnitElipse.h \
+  C:\EixoXYLongInt\EixoXYLongDouble/Geometria.h \
+  c:\program\ files\ (x86)\c++builder\include\dinkumware64\array

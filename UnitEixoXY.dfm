@@ -124,7 +124,7 @@ object EixoXY: TEixoXY
     end
     object Panel5: TPanel
       Left = 399
-      Top = 12
+      Top = 6
       Width = 730
       Height = 126
       Caption = 'Panel5'
@@ -379,6 +379,10 @@ object EixoXY: TEixoXY
         Caption = 'Importar glTF (.glb)...'
         OnClick = ImportarGLB1Click
       end
+    end
+    object DrawOpenGL1: TMenuItem
+      Caption = 'DrawOpenGL'
+      OnClick = DrawOpenGL1Click
     end
   end
 end

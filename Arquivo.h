@@ -403,7 +403,8 @@ namespace Name_Arquivos{
 		char Nome[100];
 
 		Arquivo();
-		Objetos *Abrir_Arquivo(char *Nome_Arquivo, TPoint ***RP_Circle,int ***FullMLK1,UnicodeString *Resposta);
+		// so le o arquivo: quem chama acerta os seus buffers de tela
+		Objetos *Abrir_Arquivo(char *Nome_Arquivo,UnicodeString *Resposta);
 		void Salvar_Arquivo(char *nome_Arquivo,Objetos *Objetos_Atr,UnicodeString *Resposta);
 
 	};

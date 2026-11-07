@@ -684,11 +684,9 @@ bool Objetos::GetVisao_XZ(){
 
 }
 
-Objetos  *Arquivo::Abrir_Arquivo(char *Nome_Arquivo,TPoint ***RP_Circle,int ***FullMLK1,UnicodeString *Resposta ){
+Objetos  *Arquivo::Abrir_Arquivo(char *Nome_Arquivo,UnicodeString *Resposta ){
 
 Objetos *Objetos_Atr;
-int **FullMLK=0;
-TPoint **P_Circle=0;
 std::vector<long double> Tmp_MAlpha;
 std::vector<long double> Tmp_LAlpha;
 std::vector<long double> Tmp_MVetor;
@@ -791,8 +789,6 @@ int Contador_Quadrilatero;
 
 
 							Objetos_Atr[0].Lines_Atr->Alocando_Line(Contador_Line);
-							FullMLK=EixoXY->BufFullMLK.Redimensiona(Contador_Line,4);
-							*FullMLK1=FullMLK;
 							for(int i=0;i<Contador_Line;i++){
 
 								Objetos_Atr[0].Lines_Atr->SetContador_Line(Contador_Line);
@@ -860,8 +856,6 @@ int Contador_Quadrilatero;
 
 							Objetos_Atr[0].Quadrilatero->AlocarQuadrilatero(Contador_Quadrilatero+1);
 
-							EixoXY->FullMLK2=EixoXY->BufFullMLK2.Redimensiona(Contador_Quadrilatero,4);
-							EixoXY->FullMLK3=EixoXY->BufFullMLK3.Redimensiona(Contador_Quadrilatero,4);
 
 							for(int i=0;i<Contador_Quadrilatero;i++){
 
@@ -905,8 +899,6 @@ int Contador_Quadrilatero;
 
 
 
-							P_Circle=EixoXY->BufP_Circle.Redimensiona(Contador_Circle,51);
-							*RP_Circle=P_Circle;
 
 							Objetos_Atr[0].Elipse_Atr->AlocaElipse_Atr(Contador_Circle);
 
@@ -2040,10 +2032,10 @@ Elipse *Elipses=Objetos_Atr[0].Elipse_Atr;
 		E.Tipo=Elipses->GetTipoElipse_Atr(i);
 		E.Cor=Elipses->GetColor_Circle_Atr(i);
 
-		// so o angulo do plano da elipse e usado (os outros podem estar sem valor)
-		E.AnguloX=(E.Tipo==0)?Elipses->GetAnguloX(i):0;
-		E.AnguloZ=(E.Tipo==1)?Elipses->GetAnguloZ(i):0;
-		E.AnguloY=(E.Tipo==2)?Elipses->GetAnguloY(i):0;
+		// giro proprio da elipse: os tres angulos (veja GiroDaElipse)
+		E.AnguloX=Elipses->GetAnguloX(i);
+		E.AnguloY=Elipses->GetAnguloY(i);
+		E.AnguloZ=Elipses->GetAnguloZ(i);
 		D.Elipses.push_back(E);
 	}
 

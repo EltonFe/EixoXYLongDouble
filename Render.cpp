@@ -9,6 +9,7 @@
 #include "glm\glm\glm.hpp"
 #include "glm\glm\ext.hpp"
 #include "UnitEixoXY.h"
+#include "Geometria.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -609,22 +610,6 @@ void TForm1::Draw_Elipses_Render(Objetos *Objetos_Atr){
 }
 
 // Visao 3D: pontos da elipse no espaco, na mesma escala (1/150) das linhas
-// Giro proprio de um objeto, igual ao Draw_Lines/Draw_Elipse do EixoXY: primeiro Teta
-// em torno de Zo, depois Alpha em torno de Xo. Sem isso as copias do DuplicaTeta e do
-// DuplicaAlpha que so diferem pelo angulo sairiam umas em cima das outras.
-static void GiraObjeto(float xyz[3],long double Teta,long double Alpha){
-
-	const float x=xyz[0],y=xyz[1],z=xyz[2];
-	const float CosT=(float)Cos(Teta),SinT=(float)Sin(Teta);
-	const float CosA=(float)Cos(Alpha),SinA=(float)Sin(Alpha);
-
-	const float y1=x*SinT+y*CosT;
-	xyz[0]=x*CosT-y*SinT;
-	xyz[1]=y1*CosA-z*SinA;
-	xyz[2]=y1*SinA+z*CosA;
-
-}
-
 void TForm1::DrawElipses(const Objetos *Objects)
 {
 
@@ -635,14 +620,9 @@ void TForm1::DrawElipses(const Objetos *Objects)
 	for(int j=0;j<Elipses->GetContadorCircle_Atr();j++){
 		glColorTColor(Elipses->GetColor_Circle_Atr(j));
 		glBegin(GL_LINE_STRIP);
-		// na elipse o AnguloX faz o papel do Teta e o AnguloY o do Alpha
-		const long double Teta=Elipses->GetAnguloX(j);
-		const long double Alpha=Elipses->GetAnguloY(j);
 		for(int i=0;i<51;i++){
-			PontoElipse3D(Elipses,j,i,Ponto);
-			float P[3]={(float)(Ponto[0]/Escala),(float)(Ponto[1]/Escala),(float)(Ponto[2]/Escala)};
-			GiraObjeto(P,Teta,Alpha);
-			glVertex3f(P[0],P[1],P[2]);
+			PontoElipse3D(Elipses,j,i,Ponto);		// ja com o giro proprio da elipse
+			glVertex3f((float)(Ponto[0]/Escala),(float)(Ponto[1]/Escala),(float)(Ponto[2]/Escala));
 		}
 		glEnd();
 	}

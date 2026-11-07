@@ -5,11 +5,14 @@
 
 #include "UnitEixoXY.h"
 #include "Arquivo.h"
+#include "Geometria.h"
 #include <fstream>
 #include <string.h>
 #include "DrawCursor.h"
 #include "Render.h"
+#include "draw/DrawUnit.h"
 #include <vector>
+#include <array>
 #include <stdio.h>
 #include <conio.h>
 
@@ -34,15 +37,6 @@ bool Lancar=false;
 int Kx_Partida;				// posicao e angulos do desenho antes do lancamento
 int Ky_Partida;
 long double ABT_Partida[3];
-// Figuras originais que o DuplicaValoresTeta e o DuplicaValoresAlpha copiam (indices
-// nos vetores de linhas, quadrilateros e elipses). As copias ficam fora; figuras
-// desenhadas depois de uma duplicacao entram na lista na duplicacao seguinte.
-std::vector<int> Originais_Line;
-std::vector<int> Originais_Quad;
-std::vector<int> Originais_Circle;
-int Vistos_Line;			// quantas linhas existiam no fim da ultima duplicacao
-int Vistos_Quad;			// idem, quadrilateros
-int Vistos_Circle;			// idem, elipses
 float t;
 int IndexX_Circle;
 long double Modulo_Elipse;
@@ -208,66 +202,6 @@ return (k2/k)*Desk;
 }
 
 
-void Rotacao_Vetores_3D_Circle_MP2(long double xyz[3],long double xe,long double ye, long double  ze, long double Alpha_Beta_Teta[3],int IndexX_Circle)
-{
-
-	long double *AnguloX=EixoXY->Objetos_Atr[0].Elipse_Atr->GetAnguloX();
-	long double *AnguloY=EixoXY->Objetos_Atr[0].Elipse_Atr->GetAnguloY();
-	long double *AnguloZ=EixoXY->Objetos_Atr[0].Elipse_Atr->GetAnguloZ();
-
-	int IndexX=IndexX_Circle;
-
-	if(EixoXY->RBVisaoYoZ->Checked){
-		//Yo
-		xyz[0]=xe*(Sin(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[1])*Cos(Alpha_Beta_Teta[2]+AnguloX[IndexX])+
-			Cos(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[2]+AnguloX[IndexX]))+ye*(-Sin(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[1])*Sin(Alpha_Beta_Teta[2]+AnguloX[IndexX])+
-			Cos(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Cos(Alpha_Beta_Teta[2]+AnguloX[IndexX]))+ze*(-Sin(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Cos(Alpha_Beta_Teta[1]));
-
-
-		//Zo
-		xyz[1]=xe*(-Cos(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[1])*Cos(Alpha_Beta_Teta[2]+AnguloX[IndexX])+
-			Sin(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[2]+AnguloX[IndexX]))+ye*(Cos(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[1])*Sin(Alpha_Beta_Teta[2]+AnguloX[IndexX])+
-			Sin(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Cos(Alpha_Beta_Teta[2]+AnguloX[IndexX]))+ze*(Cos(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Cos(Alpha_Beta_Teta[1]));
-
-	}
-
-
-
-
-
-	if(EixoXY->RBVisaoXoY->Checked){
-		//Xo
-		xyz[0]=xe*(Cos(Alpha_Beta_Teta[1])*Cos(Alpha_Beta_Teta[2]+AnguloX[IndexX])) -
-			( ye*Cos( Alpha_Beta_Teta[1])*Sin(Alpha_Beta_Teta[2]+AnguloX[IndexX]))+ze*Sin(Alpha_Beta_Teta[1]);
-
-		//Yo
-		xyz[1]=xe*(Sin(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[1])*Cos(Alpha_Beta_Teta[2]+AnguloX[IndexX])+
-			Cos(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Sin(Alpha_Beta_Teta[2]+AnguloY[IndexX]+AnguloX[IndexX]))+ye*(-Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1])*Sin(Alpha_Beta_Teta[2]+AnguloX[IndexX])+
-			Cos(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Cos(Alpha_Beta_Teta[2]+AnguloX[IndexX]))+ze*(-Sin(Alpha_Beta_Teta[0]+AnguloY[IndexX])*Cos(Alpha_Beta_Teta[1]));
-
-
-	}
-
-
-
-
-	if(EixoXY->RBVisaoXoZ->Checked){
-		//Xo
-		xyz[0]=xe*(Cos(Alpha_Beta_Teta[1]+AnguloZ[IndexX])*Cos(Alpha_Beta_Teta[2])) -
-		( ye*Cos( Alpha_Beta_Teta[1]+AnguloZ[IndexX])*Sin(Alpha_Beta_Teta[2]))+ze*Sin(Alpha_Beta_Teta[1]+AnguloZ[IndexX]);
-		//Zo
-		xyz[1]=xe*(-Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1]+AnguloZ[IndexX])*Cos(Alpha_Beta_Teta[2])+
-		Sin(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[2]))+ye*(Cos(Alpha_Beta_Teta[0])*Sin(Alpha_Beta_Teta[1]+AnguloZ[IndexX])*Sin(Alpha_Beta_Teta[2])+
-		Sin(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[2]))+ze*(Cos(Alpha_Beta_Teta[0])*Cos(Alpha_Beta_Teta[1]+AnguloZ[IndexX]));
-
-
-	}
-
-
-
-
-}
-
 // Desenha varias figuras (polilinhas) com PolyPolyline: uma unica chamada ao GDI
 // para cada sequencia de figuras seguidas com a mesma cor. A ordem do desenho e
 // mantida. Figuras[i] tem PontosPorFigura pontos; Cor(i) devolve a cor da figura i.
@@ -309,75 +243,18 @@ Name_Arquivos::Elipse *Elipse_Atr=Objetos_Atr[0].Elipse_Atr;
 		[Elipse_Atr](int i){ return Elipse_Atr->GetColor_Circle_Atr(i); });
 
 }
-// Ponto da elipse de semi-eixos A e B no angulo polar Teta (medido no centro):
-//     r(Teta) = A*B / sqrt( (B*cos(Teta))^2 + (A*sin(Teta))^2 )
-//     u = r*cos(Teta)   v = r*sin(Teta)
-// Cos_t e Sin_t sao o cosseno e o seno do mesmo ponto escrito como (A*cos t, B*sin t);
-// com eles a inclinacao AZ*cos(t)+BZ*sin(t) continua no mesmo plano de antes.
-void PontoElipsePolar(long double A,long double B,long double Teta,
-					  long double *u,long double *v,long double *Cos_t,long double *Sin_t){
+static TipoVisao VisaoAtual();
 
-	const long double Cos_Teta=Cos(Teta);
-	const long double Sin_Teta=Sin(Teta);
-	const long double Raiz=Sqrt((B*Cos_Teta)*(B*Cos_Teta)+(A*Sin_Teta)*(A*Sin_Teta));
-
-	if(Raiz==0){				// A e B zero: a elipse e so o centro
-		*u=*v=*Cos_t=*Sin_t=0;
-		return;
-	}
-
-	const long double r=A*B/Raiz;
-
-	*u=r*Cos_Teta;
-	*v=r*Sin_Teta;
-	*Cos_t=B*Cos_Teta/Raiz;
-	*Sin_t=A*Sin_Teta/Raiz;
-}
-
-// Ponto i (0 a 50) da elipse j no espaco 3D, antes da rotacao da vista; o ponto
-// 50 fecha no 0. Usado pelo Draw_Elipse e pela visao 3D do Render (Form1).
-void PontoElipse3D(Name_Arquivos::Elipse *Elipse_Atr,int j,int i,long double xyz[3]){
-
-long double u,v,Cos_t,Sin_t;
-
-	PontoElipsePolar(Elipse_Atr->GetA_Atr(j),Elipse_Atr->GetB_Atr(j),i*((2*M_PI)/50),&u,&v,&Cos_t,&Sin_t);
-
-	// deslocamento para fora do plano da elipse (elipse inclinada)
-	const long double Inclinacao=Elipse_Atr->GetAZo_Atr(j)*Cos_t+Elipse_Atr->GetBZo_Atr(j)*Sin_t;
-
-	switch(Elipse_Atr->GetTipoElipse_Atr(j)){
-
-		case 0:			// plano XY
-			xyz[0]=u+Elipse_Atr->GetCX(j);
-			xyz[1]=v+Elipse_Atr->GetCY(j);
-			xyz[2]=Inclinacao+Elipse_Atr->GetCZ(j);
-		break;
-
-		case 1:			// plano XZ
-			xyz[0]=u+Elipse_Atr->GetCX(j);
-			xyz[2]=v+Elipse_Atr->GetCZ(j);
-			xyz[1]=Inclinacao+Elipse_Atr->GetCY(j);
-		break;
-
-		case 2:			// plano YZ
-			xyz[1]=u+Elipse_Atr->GetCY(j);
-			xyz[2]=v+Elipse_Atr->GetCZ(j);
-			xyz[0]=Inclinacao+Elipse_Atr->GetCX(j);
-		break;
-
-		default:
-			xyz[0]=xyz[1]=xyz[2]=0;
-		break;
-	}
-}
-
+// Pontos de tela das elipses: o PontoElipse3D ja traz o giro proprio da elipse e a
+// visao e a mesma das linhas (MontaVisaoTela), em qualquer visao
 TPoint  **TEixoXY::Draw_Elipse(TCanvas *Plano,Objetos *Objetos_Atr){
 
 
 TPoint **TmpP_Circle;
 long double Ponto[3];
-long double Circle_XYZ[3];
 const int Quantidade=Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr();
+const long double *ABT=EixoXY->Objetos_Atr[0].GetAlpha_B_T();
+const VisaoTela T=MontaVisaoTela(ABT[0],ABT[1],ABT[2],VisaoAtual());
 
 		TmpP_Circle=BufP_Circle.Redimensiona(std::max(Contador_Circle,Quantidade)+15,51);
 
@@ -388,11 +265,11 @@ const int Quantidade=Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr();
 
 			PontoElipse3D(Objetos_Atr[0].Elipse_Atr,j,i,Ponto);
 
-			 Rotacao_Vetores_3D_Circle_MP2( Circle_XYZ,Ponto[0],Ponto[1],
-			 Ponto[2],EixoXY->Objetos_Atr[0].GetAlpha_B_T(),IndexX_Circle);
+			const long double h=T.R[T.H][0]*Ponto[0]+T.R[T.H][1]*Ponto[1]+T.R[T.H][2]*Ponto[2];
+			const long double v=T.R[T.V][0]*Ponto[0]+T.R[T.V][1]*Ponto[1]+T.R[T.V][2]*Ponto[2];
 
-			TmpP_Circle[j][i].x=(int) X(RoundTo(Circle_XYZ[0],0));
-			TmpP_Circle[j][i].y= (int)Y(RoundTo(Circle_XYZ[1],0));
+			TmpP_Circle[j][i].x=(int) X(RoundTo(h,0));
+			TmpP_Circle[j][i].y= (int)Y(RoundTo(v,0));
 
 		}
 
@@ -730,53 +607,13 @@ TPoint MP[2];
 
 
 
-// O Desfazer apagou figuras: tira da lista os originais que nao existem mais.
-static void EsqueceApagadas(std::vector<int> &Originais,int &Vistos,int Total){
-	while(!Originais.empty() && Originais.back()>=Total)
-		Originais.pop_back();
-	if(Vistos>Total)
-		Vistos=Total;
-}
-
-// Atualiza a lista de originais de um tipo de figura antes de duplicar.
-//   Comeco (Faz): todas as Total figuras sao originais.
-//   Depois: entram as que apareceram desde a ultima duplicacao (desenhadas pelo
-//   usuario); as copias ja estavam contadas em Vistos e ficam de fora.
-// Devolve a posicao em Originais onde comecam as figuras que entraram agora.
-static size_t AtualizaOriginais(std::vector<int> &Originais,int &Vistos,int Total,bool Comeco){
-	if(Comeco){
-		Originais.clear();
-		Vistos=0;
-	}
-	EsqueceApagadas(Originais,Vistos,Total);
-	const size_t Novas=Originais.size();
-	for(int i=Vistos;i<Total;i++)
-		Originais.push_back(i);
-	return Novas;
-}
-
 //---------------------------------------------------------------------------
-// Transformacao "na tela" usada pelo DuplicaValoresTeta e pelo DuplicaValoresAlpha
+// Duplica Teta e Duplica Alpha
 //
-// A vista 2D mostra cada ponto p multiplicado pela matriz R = Rx(a)*Ry(b)*Rz(t), as
-// mesmas formulas do Draw_Lines: na visao XoY aparecem as linhas 0 e 1 de R, na XoZ
-// as linhas 0 e 2 e na YoZ as linhas 1 e 2; a linha que sobra e a profundidade.
-// Para girar o desenho como ele aparece na tela, o ponto vai para as coordenadas da
-// tela (v = R*p), gira ali e volta para o mundo (p' = Rt*v, porque R e ortogonal).
+// As contas (giro na tela, plano de cada figura, quantas copias cada uma ja tem)
+// ficam no Duplicador (Geometria.cpp). Aqui fica so o que e do EixoXY: a visao
+// escolhida nos RadioButtons e os contadores e buffers de tela deste form.
 //---------------------------------------------------------------------------
-
-enum TipoVisao { VisaoXoY, VisaoXoZ, VisaoYoZ };
-
-// Teta: gira no plano da tela (em volta do eixo que sai da tela).
-// Alpha: gira em volta do eixo horizontal da tela.
-enum TipoGiro { GiroNoPlanoDaTela, GiroNoEixoHorizontal };
-
-struct VisaoTela{
-	long double R[3][3];
-	int H;			// linha de R que vira o eixo horizontal da tela
-	int V;			// linha de R que vira o eixo vertical da tela
-	int N;			// linha de R que sai da tela (profundidade)
-};
 
 static TipoVisao VisaoAtual(){
 	if(EixoXY->RBVisaoXoZ->Checked)
@@ -786,101 +623,8 @@ static TipoVisao VisaoAtual(){
 	return VisaoXoY;
 }
 
-// Monta R para os angulos a (Alpha), b (Beta) e t (Teta) e escolhe os eixos da visao
-static VisaoTela MontaVisaoTela(long double a,long double b,long double t,TipoVisao Visao){
-
-	const long double ca=Cos(a),sa=Sin(a),cb=Cos(b),sb=Sin(b),ct=Cos(t),st=Sin(t);
-	VisaoTela T;
-
-	T.R[0][0]=cb*ct;			T.R[0][1]=-cb*st;			T.R[0][2]=sb;
-	T.R[1][0]=sa*sb*ct+ca*st;	T.R[1][1]=-sa*sb*st+ca*ct;	T.R[1][2]=-sa*cb;
-	T.R[2][0]=-ca*sb*ct+sa*st;	T.R[2][1]=ca*sb*st+sa*ct;	T.R[2][2]=ca*cb;
-
-	switch(Visao){
-		case VisaoXoY:	T.H=0; T.V=1; break;
-		case VisaoXoZ:	T.H=0; T.V=2; break;
-		default:		T.H=1; T.V=2; break;		// YoZ
-	}
-	T.N=3-T.H-T.V;
-	return T;
-}
-
-// Gira o ponto p (Xo,Yo,Zo do mundo) de Giro radianos na tela e devolve o resultado em p
-static void GiraNaTela(const VisaoTela &T,TipoGiro Tipo,long double Giro,long double p[3]){
-
-	// os dois eixos de tela que giram juntos
-	const int E1=(Tipo==GiroNoPlanoDaTela)? T.H : T.V;
-	const int E2=(Tipo==GiroNoPlanoDaTela)? T.V : T.N;
-
-	long double v[3];
-	for(int l=0;l<3;l++)
-		v[l]=T.R[l][0]*p[0]+T.R[l][1]*p[1]+T.R[l][2]*p[2];		// mundo -> tela
-
-	const long double c=Cos(Giro),s=Sin(Giro);
-	const long double v1=v[E1],v2=v[E2];
-	v[E1]=v1*c-v2*s;
-	v[E2]=v1*s+v2*c;
-
-	for(int k=0;k<3;k++)
-		p[k]=T.R[0][k]*v[0]+T.R[1][k]*v[1]+T.R[2][k]*v[2];		// tela -> mundo (R transposta)
-}
-
-bool EixoXo(long double xo,long double yo,long double zo,  long double *Alphat,long double *MVetorXY);
-
-// O mesmo giro para um ponto polar (Alpha,Vetor,Zo): devolve o ponto girado em polar
-// (NovoAlpha,NovoVetor,NovoZo) e tambem o Xo e o Yo
-static void GiraPolarNaTela(const VisaoTela &T,TipoGiro Tipo,long double Giro,
-	long double Alpha,long double Vetor,long double Zo,
-	long double &NovoAlpha,long double &NovoVetor,long double &NovoZo,long double &Xo,long double &Yo){
-
-	long double p[3]={Cos(Alpha)*Vetor,Sin(Alpha)*Vetor,Zo};
-	GiraNaTela(T,Tipo,Giro,p);
-	Xo=p[0];
-	Yo=p[1];
-	NovoZo=p[2];
-	EixoXo(Xo,Yo,0,&NovoAlpha,&NovoVetor);
-}
-
-//---------------------------------------------------------------------------
-// Plano em que cada figura foi desenhada
-//
-// Cada figura desenhada com o mouse guarda o ABT e a visao daquele momento, e as
-// copias do DuplicaValoresTeta/Alpha herdam o plano do original. Assim cada figura
-// e duplicada no plano em que foi desenhada, mesmo que a visao seja girada depois.
-// Figuras sem plano guardado (abertas de arquivo) usam o plano da visao atual.
-// Os vetores andam junto com os indices de linhas, quadrilateros e elipses.
-//---------------------------------------------------------------------------
-
-struct PlanoDoDesenho{
-	bool Guardado;			// false: figura sem plano guardado (usa a visao atual)
-	long double ABT[3];		// angulos da visao quando a figura foi desenhada
-	TipoVisao Visao;		// visao (XoY, XoZ ou YoZ) quando a figura foi desenhada
-};
-
-std::vector<PlanoDoDesenho> Plano_Line;
-std::vector<PlanoDoDesenho> Plano_Quad;
-std::vector<PlanoDoDesenho> Plano_Circle;
-
-// Plano da figura i; sem plano guardado, o plano da visao atual (ABT e Visao)
-static PlanoDoDesenho PlanoDe(const std::vector<PlanoDoDesenho> &Planos,int i,const long double *ABT,TipoVisao Visao){
-	if(i>=0 && i<(int)Planos.size() && Planos[i].Guardado)
-		return Planos[i];
-	PlanoDoDesenho P;
-	P.Guardado=false;
-	P.ABT[0]=ABT[0];
-	P.ABT[1]=ABT[1];
-	P.ABT[2]=ABT[2];
-	P.Visao=Visao;
-	return P;
-}
-
-static void GuardaPlano(std::vector<PlanoDoDesenho> &Planos,int i,const PlanoDoDesenho &P){
-	if(i<0)
-		return;
-	if(i>=(int)Planos.size())
-		Planos.resize(i+1,PlanoDoDesenho());		// indices novos comecam sem plano guardado
-	Planos[i]=P;
-}
+// originais, plano de cada figura e copias do desenho do EixoXY
+static Duplicador Duplicacao;
 
 // plano da visao de agora, para uma figura que acabou de ser desenhada
 static PlanoDoDesenho PlanoAtual(){
@@ -894,217 +638,21 @@ static PlanoDoDesenho PlanoAtual(){
 	return P;
 }
 
-// LimpaMemoria: desenho limpo ou arquivo aberto, nenhuma figura tem plano guardado
-static void EsquecePlanos(){
-	Plano_Line.clear();
-	Plano_Quad.clear();
-	Plano_Circle.clear();
-}
+// Duplica as figuras e acerta os contadores e os buffers de tela do EixoXY, que o
+// Duplicador nao conhece
+static void DuplicaNoEixoXY(Objetos *Objetos_Atr,const long double *ABT,bool Comeco,TipoGiro Tipo){
 
-//---------------------------------------------------------------------------
-// Quantas vezes cada figura original ja foi duplicada
-//
-// Cada figura tem a sua propria contagem: a primeira copia sai PI/80 a partir de
-// onde ela foi desenhada, a segunda 2*PI/80, e assim por diante. Uma figura
-// desenhada depois de outras ja terem sido duplicadas comeca do zero, e nao do
-// giro que as outras ja acumularam.
-//---------------------------------------------------------------------------
+	Duplicacao.Duplica(Objetos_Atr,ABT,VisaoAtual(),Comeco,Tipo,M_PI/80);
 
-struct VezesDuplicada{
-	int Teta;		// copias feitas pelo DuplicaValoresTeta
-	int Alpha;		// copias feitas pelo DuplicaValoresAlpha
-};
-
-std::vector<VezesDuplicada> Vezes_Line;
-std::vector<VezesDuplicada> Vezes_Quad;
-std::vector<VezesDuplicada> Vezes_Circle;
-
-// mais uma copia da figura i: devolve quantas vezes ela ja foi duplicada contando esta
-static int ProximaVez(std::vector<VezesDuplicada> &Vezes,int i,TipoGiro Tipo){
-	if(i>=(int)Vezes.size())
-		Vezes.resize(i+1,VezesDuplicada());
-	return (Tipo==GiroNoPlanoDaTela)? ++Vezes[i].Teta : ++Vezes[i].Alpha;
-}
-
-// as figuras que acabaram de entrar como originais (Originais[Novas..]) comecam do zero
-static void ComecaContagem(std::vector<VezesDuplicada> &Vezes,const std::vector<int> &Originais,size_t Novas){
-	for(size_t k=Novas;k<Originais.size();k++){
-		const int i=Originais[k];
-		if(i>=(int)Vezes.size())
-			Vezes.resize(i+1,VezesDuplicada());
-		Vezes[i]=VezesDuplicada();
+	const int Linhas=Objetos_Atr[0].Lines_Atr->GetContador_Line();
+	if(Linhas>EixoXY->Contador_Line){
+		EixoXY->FullMLK=EixoXY->BufFullMLK.Redimensiona(Linhas,4);
+		EixoXY->Contador_Line=Linhas;
 	}
-}
-
-// Acrescenta uma copia de cada figura original (linhas, quadrilateros e elipses)
-// girada na tela: cada figura gira Passo radianos a mais que a sua copia anterior,
-// contando a partir de onde ela foi desenhada. ABT sao os angulos da visao (o
-// desenho como esta na tela); eles nao sao alterados.
-static void DuplicaGirandoNaTela(Objetos *Objetos_Atr,const long double *ABT,bool Comeco,TipoGiro Tipo,long double Passo){
-
-Name_Arquivos::Line *Lines=Objetos_Atr[0].Lines_Atr;
-TQuadrilatero *Quad=Objetos_Atr[0].Quadrilatero;
-Name_Arquivos::Elipse *Elipses=Objetos_Atr[0].Elipse_Atr;
-const TipoVisao Visao=VisaoAtual();
-
-// originais: no comeco (Faz) todas as figuras; depois entram tambem as desenhadas
-// desde a ultima duplicacao, para elas continuarem girando com as outras
-const size_t NovasLine=AtualizaOriginais(Originais_Line,Vistos_Line,Lines->GetContador_Line(),Comeco);
-const size_t NovasQuad=AtualizaOriginais(Originais_Quad,Vistos_Quad,Quad->GetContadorQuadrilatero(),Comeco);
-const size_t NovasCircle=AtualizaOriginais(Originais_Circle,Vistos_Circle,Elipses->GetContadorCircle_Atr(),Comeco);
-
-// as figuras que entraram agora comecam a contar do zero: a primeira copia delas
-// sai PI/80 a partir de onde foram desenhadas
-if(Comeco){
-	Vezes_Line.clear();
-	Vezes_Quad.clear();
-	Vezes_Circle.clear();
-}
-ComecaContagem(Vezes_Line,Originais_Line,NovasLine);
-ComecaContagem(Vezes_Quad,Originais_Quad,NovasQuad);
-ComecaContagem(Vezes_Circle,Originais_Circle,NovasCircle);
-
-	// linhas: cada linha aparece na tela com os angulos da visao mais os dela
-	// (na visao XoY o AnguloAlpha soma no Alpha, como no Draw_Lines)
-	if(Lines->GetContador_Line()>0){
-		for(size_t k=0;k<Originais_Line.size();k++){
-			const int i=Originais_Line[k];
-			Lines->Alocando_Line(EixoXY->Contador_Line+10);
-			EixoXY->FullMLK=EixoXY->BufFullMLK.Redimensiona(EixoXY->Contador_Line+1,4);
-			const int Novo=EixoXY->Contador_Line;
-
-			const long double Teta=Lines->GetAnguloTeta(i),Alpha=Lines->GetAnguloAlpha(i);
-			// a linha gira no plano em que foi desenhada (a copia herda esse plano)
-			const PlanoDoDesenho P=PlanoDe(Plano_Line,i,ABT,Visao);
-			const long double Giro=ProximaVez(Vezes_Line,i,Tipo)*Passo;	// 1a copia: Passo, 2a: 2*Passo...
-			const VisaoTela T=MontaVisaoTela(P.ABT[0]+(P.Visao==VisaoXoY? Alpha : 0),P.ABT[1],P.ABT[2]+Teta,P.Visao);
-
-			long double MAlpha,MVetor,MZo,MXo,MYo;
-			long double LAlpha,LVetor,LZo,LXo,LYo;
-			GiraPolarNaTela(T,Tipo,Giro,Lines->GetMAlpha_Atr(i),Lines->GetMVetor_Atr(i),Lines->GetMZo_Atr(i),MAlpha,MVetor,MZo,MXo,MYo);
-			GiraPolarNaTela(T,Tipo,Giro,Lines->GetLAlpha_Atr(i),Lines->GetLVetor_Atr(i),Lines->GetLZo_Atr(i),LAlpha,LVetor,LZo,LXo,LYo);
-
-			Lines->SetMAlpha_Atr(MAlpha,Novo);
-			Lines->SetMVetor_Atr(MVetor,Novo);
-			Lines->SetLAlpha_Atr(LAlpha,Novo);
-			Lines->SetLVetor_Atr(LVetor,Novo);
-
-			Lines->SetMXo_Atr(MXo,Novo);
-			Lines->SetMYo_Atr(MYo,Novo);
-			Lines->SetMZo_Atr(MZo,Novo);
-			Lines->SetLXo_Atr(LXo,Novo);
-			Lines->SetLYo_Atr(LYo,Novo);
-			Lines->SetLZo_Atr(LZo,Novo);
-
-			Lines->SetCor_Line(Lines->GetCor_Line(i),Novo);
-			// a copia usa os mesmos angulos de desenho do original: o giro ja esta nos pontos
-			Lines->Set_AngluloTeta(Teta,Novo);
-			Lines->Set_AngluloAlpha(Alpha,Novo);
-			GuardaPlano(Plano_Line,Novo,P);
-
-			EixoXY->Contador_Line++;
-			Lines->SetContador_Line(EixoXY->Contador_Line);
-		}
-	}
-
-	// quadrilateros: aparecem na tela so com os angulos da visao (Draw_Quadrilatero)
-	if(Quad->GetContadorQuadrilatero()>0){
-		for(size_t k=0;k<Originais_Quad.size();k++){
-			const int i=Originais_Quad[k];
-			// o quadrilatero gira no plano em que foi desenhado (a copia herda esse plano)
-			const PlanoDoDesenho P=PlanoDe(Plano_Quad,i,ABT,Visao);
-			const long double Giro=ProximaVez(Vezes_Quad,i,Tipo)*Passo;	// 1a copia: Passo, 2a: 2*Passo...
-			const VisaoTela T=MontaVisaoTela(P.ABT[0],P.ABT[1],P.ABT[2],P.Visao);
-			const int Novo=Quad->GetContadorQuadrilatero();
-			Quad->AlocarQuadrilatero(Novo+10);
-
-			long double MAlpha,MVetor,MZo,MXo,MYo;
-			long double LAlpha,LVetor,LZo,LXo,LYo;
-			long double MAlpha2,MVetor2,MZo2,MXo2,MYo2;
-			long double LAlpha2,LVetor2,LZo2,LXo2,LYo2;
-			GiraPolarNaTela(T,Tipo,Giro,Quad->GetMAlpha(i),Quad->GetMVetor(i),Quad->GetMZo(i),MAlpha,MVetor,MZo,MXo,MYo);
-			GiraPolarNaTela(T,Tipo,Giro,Quad->GetLAlpha(i),Quad->GetLVetor(i),Quad->GetLZo(i),LAlpha,LVetor,LZo,LXo,LYo);
-			GiraPolarNaTela(T,Tipo,Giro,Quad->GetMAlpha2(i),Quad->GetMVetor2(i),Quad->GetMZo2(i),MAlpha2,MVetor2,MZo2,MXo2,MYo2);
-			GiraPolarNaTela(T,Tipo,Giro,Quad->GetLAlpha2(i),Quad->GetLVetor2(i),Quad->GetLZo2(i),LAlpha2,LVetor2,LZo2,LXo2,LYo2);
-
-			Quad->SetMAlpha(MAlpha,Novo);
-			Quad->SetMVetor(MVetor,Novo);
-			Quad->SetLAlpha(LAlpha,Novo);
-			Quad->SetLVetor(LVetor,Novo);
-			Quad->SetMAlpha2(MAlpha2,Novo);
-			Quad->SetMVetor2(MVetor2,Novo);
-			Quad->SetLAlpha2(LAlpha2,Novo);
-			Quad->SetLVetor2(LVetor2,Novo);
-
-			Quad->SetMXo(MXo,Novo);
-			Quad->SetMYo(MYo,Novo);
-			Quad->SetMZo(MZo,Novo);
-			Quad->SetLXo(LXo,Novo);
-			Quad->SetLYo(LYo,Novo);
-			Quad->SetLZo(LZo,Novo);
-
-			Quad->SetMXo2(MXo2,Novo);
-			Quad->SetMYo2(MYo2,Novo);
-			Quad->SetMZo2(MZo2,Novo);
-			Quad->SetLXo2(LXo2,Novo);
-			Quad->SetLYo2(LYo2,Novo);
-			Quad->SetLZo2(LZo2,Novo);
-
-			Quad->SetCor(Quad->GetCor(i),Novo);
-			GuardaPlano(Plano_Quad,Novo,P);
-
-			Quad->SetContadorQuadrilatero(Novo+1);
-		}
-		Contador=Quad->GetContadorQuadrilatero();	// o proximo quadrilatero do mouse vai depois das copias
-	}
-
-	// elipses: o centro gira na tela (com os angulos da visao mais os da elipse, como
-	// no Rotacao_Vetores_3D_Circle_MP2); formato e angulos ficam os do original, o que
-	// e exato para circulos desenhados no plano da tela
-	if(Elipses->GetContadorCircle_Atr()>0){
-		for(size_t k=0;k<Originais_Circle.size();k++){
-			const int i=Originais_Circle[k];
-			const int Novo=Elipses->GetContadorCircle_Atr();
-			Elipses->AlocaElipse_Atr(Novo+5);
-
-			const long double AX=Elipses->GetAnguloX(i),AY=Elipses->GetAnguloY(i),AZ=Elipses->GetAnguloZ(i);
-			// a elipse gira no plano em que foi desenhada (a copia herda esse plano)
-			const PlanoDoDesenho P=PlanoDe(Plano_Circle,i,ABT,Visao);
-			const long double Giro=ProximaVez(Vezes_Circle,i,Tipo)*Passo;	// 1a copia: Passo, 2a: 2*Passo...
-			const VisaoTela T=(P.Visao==VisaoXoZ)? MontaVisaoTela(P.ABT[0],P.ABT[1]+AZ,P.ABT[2],P.Visao)
-												 : MontaVisaoTela(P.ABT[0]+AY,P.ABT[1],P.ABT[2]+AX,P.Visao);
-
-			long double Centro[3]={Elipses->GetCX(i),Elipses->GetCY(i),Elipses->GetCZ(i)};
-			GiraNaTela(T,Tipo,Giro,Centro);
-
-			Elipses->SetCX(Centro[0],Novo);
-			Elipses->SetCY(Centro[1],Novo);
-			Elipses->SetCZ(Centro[2],Novo);
-			Elipses->SetCenter_Atr(Centro[0],Centro[1],Centro[2],Novo);
-
-			Elipses->SetA_Atr(Elipses->GetA_Atr(i),Novo);
-			Elipses->SetB_Atr(Elipses->GetB_Atr(i),Novo);
-			Elipses->SetAZo_Atr(Elipses->GetAZo_Atr(i),Novo);
-			Elipses->SetBZo_Atr(Elipses->GetBZo_Atr(i),Novo);
-			Elipses->SetTipoElipse_Atr(Elipses->GetTipoElipse_Atr(i),Novo);
-			Elipses->SetColor_Circle_Atr(Elipses->GetColor_Circle_Atr(i),Novo);
-			Elipses->Set_IndexX(Elipses->GetIndexX(i),Novo);
-
-			Elipses->Set_AnguloX(AX,Novo);
-			Elipses->Set_AnguloY(AY,Novo);
-			Elipses->Set_AnguloZ(AZ,Novo);
-			GuardaPlano(Plano_Circle,Novo,P);
-
-			Elipses->SetContadorCircle_Atr(Novo+1);
-		}
-		EixoXY->Contador_Circle=Elipses->GetContadorCircle_Atr();
-	}
-
-// tudo o que existe agora (originais e copias) ja foi visto: so o que for
-// desenhado daqui em diante entra como original na proxima duplicacao
-Vistos_Line=Lines->GetContador_Line();
-Vistos_Quad=Quad->GetContadorQuadrilatero();
-Vistos_Circle=Elipses->GetContadorCircle_Atr();
+	if(Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero()>0)
+		Contador=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();	// o proximo quadrilatero do mouse vai depois das copias
+	if(Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr()>0)
+		EixoXY->Contador_Circle=Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr();
 }
 
 // Cada chamada acrescenta uma copia dos objetos originais (linhas, quadrilateros e
@@ -1112,7 +660,7 @@ Vistos_Circle=Elipses->GetContadorCircle_Atr();
 // foi desenhada: cada figura gira PI/80 a mais que a sua copia anterior.
 void TEixoXY::DuplicaValoresTeta(Objetos *Objetos_Atr,long double *ABT){
 
-	DuplicaGirandoNaTela(Objetos_Atr,ABT,Faz,GiroNoPlanoDaTela,M_PI/80);
+	DuplicaNoEixoXY(Objetos_Atr,ABT,Faz,GiroNoPlanoDaTela);
 	Faz=false;
 }
 
@@ -1120,7 +668,7 @@ void TEixoXY::DuplicaValoresTeta(Objetos *Objetos_Atr,long double *ABT){
 // eixo horizontal da tela.
 void TEixoXY::DuplicaValoresAlpha(Objetos *Objetos_Atr){
 
-	DuplicaGirandoNaTela(Objetos_Atr,ABT,Faz,GiroNoEixoHorizontal,M_PI/80);
+	DuplicaNoEixoXY(Objetos_Atr,ABT,Faz,GiroNoEixoHorizontal);
 	Faz=false;
 }
 
@@ -1146,23 +694,6 @@ static VisaoTela VisaoDoDesenho(long double MaisAlpha,long double MaisBeta,long 
 	return MontaVisaoTela(ABT[0]+MaisAlpha,ABT[1]+MaisBeta,ABT[2]+MaisTeta,VisaoAtual());
 }
 
-// p entra com as coordenadas da tela (v) e sai com as do mundo: p = Rt*v
-static void TelaParaMundo(const VisaoTela &T,long double p[3]){
-	const long double v[3]={p[0],p[1],p[2]};
-	for(int k=0;k<3;k++)
-		p[k]=T.R[0][k]*v[0]+T.R[1][k]*v[1]+T.R[2][k]*v[2];
-}
-
-// o mesmo para um ponto polar (Alpha,Vetor,Zo); tambem devolve Xo e Yo
-static void PolarParaMundo(const VisaoTela &T,long double &Alpha,long double &Vetor,long double &Zo,long double &Xo,long double &Yo){
-	long double p[3]={Cos(Alpha)*Vetor,Sin(Alpha)*Vetor,Zo};
-	TelaParaMundo(T,p);
-	Xo=p[0];
-	Yo=p[1];
-	Zo=p[2];
-	EixoXo(Xo,Yo,0,&Alpha,&Vetor);
-}
-
 // linha i acabou de ser desenhada: as duas pontas vao para o plano da visao
 static void LevaLinhaParaVisao(int i){
 
@@ -1171,7 +702,7 @@ static void LevaLinhaParaVisao(int i){
 	// linha nova comeca sem rotacao propria (o indice pode ter sobrado de um Desfazer)
 	Lines->Set_AngluloTeta(0,i);
 	Lines->Set_AngluloAlpha(0,i);
-	GuardaPlano(Plano_Line,i,PlanoAtual());		// lembra o plano em que a linha foi desenhada
+	Duplicacao.GuardaPlanoLine(i,PlanoAtual());		// lembra o plano em que a linha foi desenhada
 	if(VisaoSemGiro())
 		return;
 
@@ -1198,7 +729,7 @@ static void LevaLinhaParaVisao(int i){
 // quadrilatero i acabou de ser desenhado: os 4 cantos vao para o plano da visao
 static void LevaQuadParaVisao(int i){
 
-	GuardaPlano(Plano_Quad,i,PlanoAtual());		// lembra o plano em que o quadrilatero foi desenhado
+	Duplicacao.GuardaPlanoQuad(i,PlanoAtual());		// lembra o plano em que o quadrilatero foi desenhado
 	if(VisaoSemGiro())
 		return;
 
@@ -1223,24 +754,19 @@ static void LevaQuadParaVisao(int i){
 	Quad->SetLAlpha2(Alpha,i); Quad->SetLVetor2(Vetor,i); Quad->SetLZo2(Zo,i); Quad->SetLXo2(Xo,i); Quad->SetLYo2(Yo,i);
 }
 
-// elipse i acabou de ser desenhada: o centro vai para o plano da visao (com os
-// angulos proprios da elipse, como no Rotacao_Vetores_3D_Circle_MP2)
+// elipse i acabou de ser desenhada: o centro fica como foi clicado (no plano do
+// TipoElipse) e o giro proprio da elipse leva o circulo inteiro para o plano da tela
+// girada: AnguloY=-Alpha, AnguloZ=-Beta e AnguloX=-Teta fazem M = Rt (GiroDaElipse).
+// Com a visao sem giro os angulos ficam 0 e nada muda.
 static void LevaElipseParaVisao(int i){
 
-	GuardaPlano(Plano_Circle,i,PlanoAtual());		// lembra o plano em que a elipse foi desenhada
-	if(VisaoSemGiro())
-		return;
+	Duplicacao.GuardaPlanoCircle(i,PlanoAtual());		// lembra o plano em que a elipse foi desenhada
 
 	Name_Arquivos::Elipse *Elipses=EixoXY->Objetos_Atr[0].Elipse_Atr;
-	const long double AX=Elipses->GetAnguloX(i),AY=Elipses->GetAnguloY(i),AZ=Elipses->GetAnguloZ(i);
-	const VisaoTela T=(VisaoAtual()==VisaoXoZ)? VisaoDoDesenho(0,AZ,0) : VisaoDoDesenho(AY,0,AX);
-
-	long double Centro[3]={Elipses->GetCX(i),Elipses->GetCY(i),Elipses->GetCZ(i)};
-	TelaParaMundo(T,Centro);
-	Elipses->SetCX(Centro[0],i);
-	Elipses->SetCY(Centro[1],i);
-	Elipses->SetCZ(Centro[2],i);
-	Elipses->SetCenter_Atr(Centro[0],Centro[1],Centro[2],i);
+	const long double *ABT=EixoXY->Objetos_Atr[0].GetAlpha_B_T();
+	Elipses->Set_AnguloY(-ABT[0],i);
+	Elipses->Set_AnguloZ(-ABT[1],i);
+	Elipses->Set_AnguloX(-ABT[2],i);
 }
 
 // Desenha os quadrilateros com os pontos de tela devolvidos pelo Draw_Quadrilatero:
@@ -1720,46 +1246,6 @@ return Ky-y;
 
 
 
-
-//---------------------------------------------------------------------------
-// EixoXo: converte o ponto (xo,yo) do plano XoY para coordenadas polares.
-//   *MVetorXY = distancia ate a origem: sqrt(xo*xo + yo*yo)
-//   *Alphat   = angulo a partir do eixo Xo, de 0 a 2*PI no sentido anti-horario
-//               (como no codigo original, sobre o eixo -Yo devolve -PI/2)
-// zo nao entra na conta; o parametro fica para nao mudar as chamadas.
-// Devolve false quando o ponto esta na origem (Alpha e Vetor ficam 0).
-bool EixoXo(long double xo,long double yo,long double zo,long double *Alphat,long double *MVetorXY){
-
-	if(xo==0 && yo==0){			// origem: nao tem angulo
-		*Alphat=0;
-		*MVetorXY=0;
-		return false;
-	}
-
-	const long double Vetor=Sqrt(xo*xo+yo*yo);
-	*MVetorXY=Vetor;
-
-	// sobre os eixos
-	if(xo==0){
-		*Alphat=(yo>0)? M_PI/2 : -M_PI/2;
-		return true;
-	}
-	if(yo==0){
-		*Alphat=(xo>0)? 0 : M_PI;
-		return true;
-	}
-
-	// fora dos eixos: Base e o angulo agudo com o eixo Xo (0 a PI/2),
-	// que depois e ajustado conforme o quadrante
-	const long double Base=acos(fabsl(xo)/Vetor);
-
-	if(xo>0 && yo>0)		*Alphat=Base;				// 1o quadrante
-	else if(xo<0 && yo>0)	*Alphat=M_PI-Base;			// 2o quadrante
-	else if(xo<0 && yo<0)	*Alphat=M_PI+Base;			// 3o quadrante
-	else					*Alphat=2*M_PI-Base;		// 4o quadrante
-
-	return true;
-}
 
 long double Raio(int x1,int y1,int x2,int y2){
 	long double Angulo;
@@ -3012,7 +2498,7 @@ void LimpaMemoria(){
 	Ky=540;
     Libera_Draw=false;
     EixoXY->Tempo_Draw->Enabled=false;
-	EsquecePlanos();					// desenho novo: nenhuma figura tem plano guardado
+	Duplicacao.EsquecePlanos();					// desenho novo: nenhuma figura tem plano guardado
 	EixoXY->Faz=true;
 
 
@@ -3023,7 +2509,7 @@ void __fastcall TEixoXY::Volta_LinhaClick(TObject *Sender)
  if(i>0){
 	EixoXY->Objetos_Atr[0].Lines_Atr->SetContador_Line(i-1);
     Contador_Line--;
-	EsqueceApagadas(Originais_Line,Vistos_Line,i-1);	// a linha apagada nao e mais copiada
+	Duplicacao.EsqueceLinhasApagadas(i-1);	// a linha apagada nao e mais copiada
 	Limpa_VoltaLinha(EixoXY->Canvas,EixoXY->MP1);
  }
 }
@@ -3307,10 +2793,23 @@ UnicodeString Resposta;
 		LimpaMemoria();
 
 
-		Tmp_Objetos=Arqui.Abrir_Arquivo(Nome_Arquivo.c_str(), &P_Circle,&FullMLK,&Resposta);
+		Tmp_Objetos=Arqui.Abrir_Arquivo(Nome_Arquivo.c_str(),&Resposta);
 		if(Tmp_Objetos!=NULL){
 			delete[] Objetos_Atr;		// libera o desenho anterior
 			Objetos_Atr=Tmp_Objetos;
+
+			// os buffers de tela do EixoXY acompanham o desenho aberto
+			const int Linhas=Objetos_Atr[0].Lines_Atr->GetContador_Line();
+			const int Quads=Objetos_Atr[0].Quadrilatero->GetContadorQuadrilatero();
+			const int Elipses=Objetos_Atr[0].Elipse_Atr->GetContadorCircle_Atr();
+			if(Linhas>0)
+				FullMLK=BufFullMLK.Redimensiona(Linhas,4);
+			if(Quads>0){
+				FullMLK2=BufFullMLK2.Redimensiona(Quads,4);
+				FullMLK3=BufFullMLK3.Redimensiona(Quads,4);
+			}
+			if(Elipses>0)
+				P_Circle=BufP_Circle.Redimensiona(Elipses,51);
 		}
 		ShowMessage(Resposta);
 		if(0)
@@ -3441,5 +2940,13 @@ TOpenDialog *DlgGLB=new TOpenDialog(this);
 	}
 
 	ShowMessage(Resposta);
+}
+//---------------------------------------------------------------------------
+
+// Abre o DrawOpenGL: desenho proprio em OpenGL com as mesmas classes de desenho
+void __fastcall TEixoXY::DrawOpenGL1Click(TObject *Sender)
+{
+	DrawOpenGL->Show();
+	DrawOpenGL->BringToFront();
 }
 //---------------------------------------------------------------------------

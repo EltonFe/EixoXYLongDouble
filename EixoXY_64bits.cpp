@@ -4,12 +4,12 @@
 #pragma hdrstop
 #include <tchar.h>
 //---------------------------------------------------------------------------
-USEFORM("Render.cpp", Form1);
 USEFORM("UnitConstrucaoLine.cpp", ConstrucaoLines);
-USEFORM("UnitEixoXY.cpp", EixoXY);
+USEFORM("Render.cpp", Form1);
 USEFORM("UnitElipse.cpp", FElipse);
+USEFORM("UnitEixoXY.cpp", EixoXY);
+USEFORM("draw\DrawUnit.cpp", DrawOpenGL);
 USEFORM("DrawCursor.cpp", FDrawCursor);
-USEFORM("draw\DrawUnit.cpp", Form2);
 //---------------------------------------------------------------------------
 int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 {
@@ -22,7 +22,7 @@ int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 		Application->CreateForm(__classid(TFElipse), &FElipse);
 		Application->CreateForm(__classid(TFDrawCursor), &FDrawCursor);
 		Application->CreateForm(__classid(TForm1), &Form1);
-		Application->CreateForm(__classid(TForm2), &Form2);
+		Application->CreateForm(__classid(TDrawOpenGL), &DrawOpenGL);
 		Application->Run();
 	}
 	catch (Exception &exception)

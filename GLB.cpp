@@ -953,6 +953,17 @@ bool ImportarNo(const Json &Raiz,const std::vector<unsigned char> &Bin,long long
 
 void PontosElipse(const Elipse &E,double Pontos[SegmentosElipse][3]){
 
+	// Giro proprio da elipse em volta da origem, o mesmo do EixoXY (GiroDaElipse):
+	// M = Rz(AnguloX)*Ry(AnguloZ)*Rx(AnguloY)
+	const double ct=std::cos(Finito(E.AnguloX)),st=std::sin(Finito(E.AnguloX));
+	const double cb=std::cos(Finito(E.AnguloZ)),sb=std::sin(Finito(E.AnguloZ));
+	const double ca=std::cos(Finito(E.AnguloY)),sa=std::sin(Finito(E.AnguloY));
+	const double M[3][3]={
+		{ ct*cb,	ct*sb*sa-st*ca,	ct*sb*ca+st*sa	},
+		{ st*cb,	st*sb*sa+ct*ca,	st*sb*ca-ct*sa	},
+		{-sb,		cb*sa,			cb*ca			}
+	};
+
 	for(int i=0;i<SegmentosElipse;i++){
 
 		double t=i*(2*PI/SegmentosElipse);
@@ -978,23 +989,8 @@ void PontosElipse(const Elipse &E,double Pontos[SegmentosElipse][3]){
 				break;
 		}
 
-		// Rotacao da elipse no proprio plano (em torno da origem, como na tela):
-		// plano XY gira em Z (AnguloX), XZ gira em Y (AnguloZ), YZ gira em X (AnguloY)
-		double a,ca,sa;
-		switch(E.Tipo){
-			case 1:
-				a=Finito(E.AnguloZ); ca=std::cos(a); sa=std::sin(a);
-				Pontos[i][0]= x*ca+z*sa; Pontos[i][1]=y; Pontos[i][2]=-x*sa+z*ca;
-				break;
-			case 2:
-				a=Finito(E.AnguloY); ca=std::cos(a); sa=std::sin(a);
-				Pontos[i][0]=x; Pontos[i][1]=y*ca-z*sa; Pontos[i][2]=y*sa+z*ca;
-				break;
-			default:
-				a=Finito(E.AnguloX); ca=std::cos(a); sa=std::sin(a);
-				Pontos[i][0]=x*ca-y*sa; Pontos[i][1]=x*sa+y*ca; Pontos[i][2]=z;
-				break;
-		}
+		for(int l=0;l<3;l++)
+			Pontos[i][l]=M[l][0]*x+M[l][1]*y+M[l][2]*z;
 	}
 }
 

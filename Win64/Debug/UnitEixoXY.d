@@ -391,6 +391,8 @@
   c:\program\ files\ (x86)\c++builder\include\dinkumware64\xheap \
   C:\EixoXYLongInt\EixoXYLongDouble/Cores.h \
   C:\EixoXYLongInt\EixoXYLongDouble/UnitQuadrilatero.h \
+  C:\EixoXYLongInt\EixoXYLongDouble/Geometria.h \
+  c:\program\ files\ (x86)\c++builder\include\dinkumware64\array \
   c:\program\ files\ (x86)\c++builder\include\dinkumware64\fstream \
   c:\program\ files\ (x86)\c++builder\include\dinkumware64\filesystem \
   c:\program\ files\ (x86)\c++builder\include\dinkumware64\chrono \
@@ -627,6 +629,7 @@
   C:\EixoXYLongInt\EixoXYLongDouble/glm/glm/detail/../gtc/ulp.inl \
   C:\EixoXYLongInt\EixoXYLongDouble/glm/glm/detail/../gtc/../ext/scalar_ulp.hpp \
   C:\EixoXYLongInt\EixoXYLongDouble/glm/glm/./ext/scalar_ulp.inl \
+  C:\EixoXYLongInt\EixoXYLongDouble/draw/DrawUnit.h \
   c:\program\ files\ (x86)\c++builder\include\windows\crtl\conio.h \
   c:\program\ files\ (x86)\c++builder\include\windows\sdk\gl\gl.h \
   c:\program\ files\ (x86)\c++builder\include\windows\sdk\gl\glu.h

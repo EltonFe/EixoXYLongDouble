@@ -198,13 +198,17 @@
             <BuildOrder>6</BuildOrder>
         </CppCompile>
         <CppCompile Include="draw\DrawUnit.cpp">
-            <Form>Form2</Form>
+            <Form>DrawOpenGL</Form>
             <FormType>dfm</FormType>
             <DependentOn>draw\DrawUnit.h</DependentOn>
             <BuildOrder>11</BuildOrder>
         </CppCompile>
         <CppCompile Include="EixoXY_64bits.cpp">
             <BuildOrder>0</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Geometria.cpp">
+            <DependentOn>Geometria.h</DependentOn>
+            <BuildOrder>12</BuildOrder>
         </CppCompile>
         <CppCompile Include="GLB.cpp">
             <DependentOn>GLB.h</DependentOn>
@@ -245,12 +249,12 @@
             <DependentOn>UnitQuadrilatero.h</DependentOn>
             <BuildOrder>8</BuildOrder>
         </CppCompile>
-        <FormResources Include="Render.dfm"/>
         <FormResources Include="UnitConstrucaoLine.dfm"/>
-        <FormResources Include="UnitEixoXY.dfm"/>
+        <FormResources Include="Render.dfm"/>
         <FormResources Include="UnitElipse.dfm"/>
-        <FormResources Include="DrawCursor.dfm"/>
+        <FormResources Include="UnitEixoXY.dfm"/>
         <FormResources Include="draw\DrawUnit.dfm"/>
+        <FormResources Include="DrawCursor.dfm"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

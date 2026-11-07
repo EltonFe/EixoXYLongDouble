@@ -73,6 +73,7 @@ __published:	// IDE-managed Components
 	TMenuItem *Export1;
 	TMenuItem *ExportarGLB1;
 	TMenuItem *ImportarGLB1;
+	TMenuItem *DrawOpenGL1;
 	TLabel *LblZo;
 	TLabel *LblYo;
 	TLabel *LblXo;
@@ -110,6 +111,7 @@ __published:	// IDE-managed Components
 	void __fastcall FormKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
 	void __fastcall ExportarGLB1Click(TObject *Sender);
 	void __fastcall ImportarGLB1Click(TObject *Sender);
+	void __fastcall DrawOpenGL1Click(TObject *Sender);
 
 private:	// User declarations
 public:		// User declarations
@@ -159,7 +161,5 @@ public:		// User declarations
 //---------------------------------------------------------------------------
 extern PACKAGE TEixoXY *EixoXY;
 
-// Ponto i (0 a 50) da elipse j no espaco 3D, antes da rotacao da vista
-void PontoElipse3D(Name_Arquivos::Elipse *Elipse_Atr,int j,int i,long double xyz[3]);
 //---------------------------------------------------------------------------
 #endif

@@ -380,4 +380,16 @@
   c:\program\ files\ (x86)\c++builder\include\windows\rtl\System.MaskUtils.hpp \
   c:\program\ files\ (x86)\c++builder\include\windows\vcl\Vcl.ListActns.hpp \
   c:\program\ files\ (x86)\c++builder\include\windows\sdk\ShObjIdl.h \
-  draw/DrawUnit.h
+  draw/DrawUnit.h \
+  c:\program\ files\ (x86)\c++builder\include\dinkumware64\vector \
+  draw/../Arquivo.h \
+  c:\program\ files\ (x86)\c++builder\include\windows\rtl\System.Math.hpp \
+  C:\EixoXYLongInt\EixoXYLongDouble/Matriz.h \
+  c:\program\ files\ (x86)\c++builder\include\dinkumware64\algorithm \
+  c:\program\ files\ (x86)\c++builder\include\dinkumware64\xheap \
+  C:\EixoXYLongInt\EixoXYLongDouble/Cores.h \
+  C:\EixoXYLongInt\EixoXYLongDouble/UnitQuadrilatero.h \
+  draw/../Geometria.h \
+  c:\program\ files\ (x86)\c++builder\include\dinkumware64\array \
+  c:\program\ files\ (x86)\c++builder\include\windows\sdk\gl\gl.h \
+  c:\program\ files\ (x86)\c++builder\include\windows\sdk\gl\glu.h
