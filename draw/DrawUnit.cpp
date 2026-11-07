@@ -57,6 +57,16 @@ static void Vertice(const long double xyz[3]){
 	glVertex3d((double)xyz[0],(double)xyz[1],(double)xyz[2]);
 }
 
+static double Graus(long double Radianos){
+	return (double)(Radianos*180/M_PI);
+}
+
+// um ponto polar no texto do CBFiguras: Nome(Xo; Yo; Zo) Vetor e Alpha (em graus)
+static UnicodeString TextoPonto(const wchar_t *Nome,const PontoPolar &P){
+	return Format(L"%s(%.2f; %.2f; %.2f) V=%.2f A=%.1f\u00B0",
+		ARRAYOFCONST((UnicodeString(Nome),(double)P.Xo,(double)P.Yo,(double)P.Zo,(double)P.Vetor,Graus(P.Alpha))));
+}
+
 //---------------------------------------------------------------------------
 __fastcall TDrawOpenGL::TDrawOpenGL(TComponent* Owner)
 	: TForm(Owner)
@@ -70,6 +80,7 @@ __fastcall TDrawOpenGL::TDrawOpenGL(TComponent* Owner)
 	Girando=false;
 	UltimoX=UltimoY=0;
 	ComecoDuplicacao=true;
+	ValoresCarregados=new TStringList();
 }
 //---------------------------------------------------------------------------
 
@@ -90,6 +101,7 @@ void __fastcall TDrawOpenGL::FormCreate(TObject *Sender)
 		if(Botao!=NULL)
 			Botao->OnMouseUp=RGVisaoBotaoMouseUp;
 	}
+	AtualizaListaFiguras();
 	Status("Linha: clique no inicio e no fim. Botao direito arrastando gira a visao.");
 }
 
@@ -98,6 +110,8 @@ void __fastcall TDrawOpenGL::FormDestroy(TObject *Sender)
 	FinalizaGL();
 	delete[] Desenho;			// criado com new Objetos[1]()
 	Desenho=NULL;
+	delete ValoresCarregados;
+	ValoresCarregados=NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -168,7 +182,7 @@ bool TDrawOpenGL::NaAreaGL(int Y){
 // mouse -> ponto da tela em unidades do desenho, com a origem no centro da area GL
 TDrawOpenGL::PontoTela TDrawOpenGL::TelaDoMouse(int X,int Y){
 	const int Topo=AlturaFerramentas();
-	const long double Cx=ClientWidth/2.0L;
+	const long double Cx=(ClientWidth-LarguraEdicao())/2.0L;		// a area GL termina no painel de edicao
 	const long double Cy=Topo+(ClientHeight-Topo)/2.0L;
 	PontoTela P;
 	P.h=(X-Cx)/Escala;
@@ -360,6 +374,7 @@ void TDrawOpenGL::CancelaFigura(){
 void TDrawOpenGL::Duplica(TipoGiro Tipo){
 	Duplicacao.Duplica(Desenho,Desenho[0].GetAlpha_B_T(),Visao(),ComecoDuplicacao,Tipo,PassoGiro);
 	ComecoDuplicacao=false;
+	AtualizaListaFiguras();
 	CancelaFigura();
 }
 
@@ -379,11 +394,277 @@ void TDrawOpenGL::NovoDesenho(Objetos *Novo){
 	Duplicacao.EsquecePlanos();			// figuras novas: nenhuma tem plano guardado
 	ComecoDuplicacao=true;
 	Cliques.clear();
+	CBFiguras->ItemIndex=-1;			// os indices antigos nao valem para o desenho novo
+	AtualizaListaFiguras();
 	Desenha();
 }
 
 void TDrawOpenGL::Status(const UnicodeString &Texto){
 	LblStatus->Caption=Texto;
+}
+
+//---------------------------------------------------------------------------
+// Lista das figuras (CBFiguras): todas as linhas, quadrilateros e elipses do
+// desenho, com as coordenadas, vetores e angulos, para depois serem alteradas
+//---------------------------------------------------------------------------
+
+// refaz a lista a partir das classes; a figura que estava escolhida continua escolhida
+void TDrawOpenGL::AtualizaListaFiguras(){
+
+	ItemFigura Anterior;
+	const bool TinhaSelecao=FiguraSelecionada(Anterior);
+
+	Figuras.clear();
+	CBFiguras->Items->BeginUpdate();
+	CBFiguras->Items->Clear();
+
+	Line *Lines=Desenho[0].Lines_Atr;
+	for(int i=0;i<Lines->GetContador_Line();i++){
+		const std::array<PontoPolar,2> P=LerPontas(Lines,i);
+		CBFiguras->Items->Add(Format(L"Linha %d   ",ARRAYOFCONST((i+1)))
+			+TextoPonto(L"M",P[0])+L"   "+TextoPonto(L"L",P[1])
+			+Format(L"   Giro: Teta=%.1f\u00B0 Alpha=%.1f\u00B0",
+				ARRAYOFCONST((Graus(Lines->GetAnguloTeta(i)),Graus(Lines->GetAnguloAlpha(i))))));
+		Figuras.push_back(ItemFigura{FiguraLinha,i});
+	}
+
+	TQuadrilatero *Quad=Desenho[0].Quadrilatero;
+	static const wchar_t *Canto[4]={L"M",L"L",L"M2",L"L2"};
+	for(int i=0;i<Quad->GetContadorQuadrilatero();i++){
+		const std::array<PontoPolar,4> C=LerCantos(Quad,i);
+		UnicodeString Texto=Format(L"Quadril\u00E1tero %d",ARRAYOFCONST((i+1)));
+		for(int k=0;k<4;k++)
+			Texto+=L"   "+TextoPonto(Canto[k],C[k]);
+		CBFiguras->Items->Add(Texto);
+		Figuras.push_back(ItemFigura{FiguraQuadrilatero,i});
+	}
+
+	Elipse *Elipses=Desenho[0].Elipse_Atr;
+	static const wchar_t *Plano[3]={L"XY",L"XZ",L"YZ"};
+	for(int i=0;i<Elipses->GetContadorCircle_Atr();i++){
+		const int Tipo=Elipses->GetTipoElipse_Atr(i);
+		const UnicodeString NomePlano=((Tipo>=0)&&(Tipo<3))? UnicodeString(Plano[Tipo]) : UnicodeString(L"?");
+		CBFiguras->Items->Add(Format(
+			L"Elipse %d   Centro(%.2f; %.2f; %.2f)   A=%.2f B=%.2f   Plano %s   Giro: X=%.1f\u00B0 Y=%.1f\u00B0 Z=%.1f\u00B0",
+			ARRAYOFCONST((i+1,
+				(double)Elipses->GetCX(i),(double)Elipses->GetCY(i),(double)Elipses->GetCZ(i),
+				(double)Elipses->GetA_Atr(i),(double)Elipses->GetB_Atr(i),
+				NomePlano,
+				Graus(Elipses->GetAnguloX(i)),Graus(Elipses->GetAnguloY(i)),Graus(Elipses->GetAnguloZ(i))))));
+		Figuras.push_back(ItemFigura{FiguraElipse,i});
+	}
+
+	int Selecao=-1;
+	if(TinhaSelecao)
+		for(size_t k=0;k<Figuras.size();k++)
+			if((Figuras[k].Tipo==Anterior.Tipo)&&(Figuras[k].Indice==Anterior.Indice)){
+				Selecao=(int)k;
+				break;
+			}
+
+	CBFiguras->Items->EndUpdate();
+	CBFiguras->ItemIndex=Selecao;
+	CarregaEdicao();				// os valores da figura escolhida (ou nada)
+}
+
+// figura escolhida no CBFiguras (false se nenhuma ou se ela nao existe mais)
+bool TDrawOpenGL::FiguraSelecionada(ItemFigura &Item){
+
+	const int k=CBFiguras->ItemIndex;
+	if((k<0)||(k>=(int)Figuras.size()))
+		return false;
+	Item=Figuras[k];
+
+	switch(Item.Tipo){
+		case FiguraLinha:			return Item.Indice<Desenho[0].Lines_Atr->GetContador_Line();
+		case FiguraQuadrilatero:	return Item.Indice<Desenho[0].Quadrilatero->GetContadorQuadrilatero();
+		case FiguraElipse:			return Item.Indice<Desenho[0].Elipse_Atr->GetContadorCircle_Atr();
+	}
+	return false;
+}
+
+//---------------------------------------------------------------------------
+// Edicao da figura escolhida (PnlEdicao): cada ponto aparece com Xo, Yo, Zo, Vetor
+// e Alpha. No Aplicar, se o Vetor ou o Alpha de um ponto foi mudado ele e refeito
+// pelo polar; se nao, pelo Xo e Yo (e o EixoXo acha o Alpha e o Vetor). Os angulos
+// aparecem e sao digitados em graus.
+//---------------------------------------------------------------------------
+
+int TDrawOpenGL::LarguraEdicao(){
+	return PnlEdicao->Visible? PnlEdicao->Width : 0;
+}
+
+void TDrawOpenGL::PoeCampo(const UnicodeString &Campo,long double Valor){
+	const UnicodeString Texto=FormatFloat("0.######",(double)Valor);
+	VLEdicao->InsertRow(Campo,Texto,true);
+	ValoresCarregados->Values[Campo]=Texto;
+}
+
+void TDrawOpenGL::PoePonto(const UnicodeString &Nome,const PontoPolar &P){
+	PoeCampo(Nome+" Xo",P.Xo);
+	PoeCampo(Nome+" Yo",P.Yo);
+	PoeCampo(Nome+" Zo",P.Zo);
+	PoeCampo(Nome+" Vetor",P.Vetor);
+	PoeCampo(Nome+" Alpha (graus)",Graus(P.Alpha));
+}
+
+// aceita ponto ou virgula como separador decimal
+bool TDrawOpenGL::LeCampo(const UnicodeString &Campo,long double &Valor){
+	UnicodeString Texto=Trim(VLEdicao->Values[Campo]);
+	const UnicodeString Separador=FormatSettings.DecimalSeparator;
+	Texto=StringReplace(Texto,".",Separador,TReplaceFlags()<<rfReplaceAll);
+	Texto=StringReplace(Texto,",",Separador,TReplaceFlags()<<rfReplaceAll);
+	double Lido;
+	if(!TryStrToFloat(Texto,Lido)){
+		Status("Valor invalido em \""+Campo+"\"");
+		return false;
+	}
+	Valor=Lido;
+	return true;
+}
+
+bool TDrawOpenGL::Mudou(const UnicodeString &Campo){
+	return Trim(VLEdicao->Values[Campo])!=ValoresCarregados->Values[Campo];
+}
+
+// P entra com o ponto guardado e sai com o ponto editado (igual, se nada mudou)
+bool TDrawOpenGL::LePonto(const UnicodeString &Nome,PontoPolar &P){
+
+	long double Xo,Yo,Zo,Vetor,Alpha;
+	if(!LeCampo(Nome+" Xo",Xo)||!LeCampo(Nome+" Yo",Yo)||!LeCampo(Nome+" Zo",Zo)||
+	   !LeCampo(Nome+" Vetor",Vetor)||!LeCampo(Nome+" Alpha (graus)",Alpha))
+		return false;
+
+	if(Mudou(Nome+" Zo"))
+		P.Zo=Zo;
+
+	if(Mudou(Nome+" Vetor")||Mudou(Nome+" Alpha (graus)"))
+		P=Polar(Alpha*M_PI/180,Vetor,P.Zo);				// mudou pelo polar
+	else if(Mudou(Nome+" Xo")||Mudou(Nome+" Yo")){
+		P.Xo=Xo;										// mudou pelo cartesiano
+		P.Yo=Yo;
+		EixoXo(Xo,Yo,0,&P.Alpha,&P.Vetor);
+	}
+	return true;
+}
+
+// mostra no VLEdicao os valores da figura escolhida no CBFiguras
+void TDrawOpenGL::CarregaEdicao(){
+
+	if(ValoresCarregados==NULL)
+		return;
+
+	VLEdicao->Strings->Clear();
+	ValoresCarregados->Clear();
+
+	ItemFigura Item;
+	const bool Tem=FiguraSelecionada(Item);
+	BtnAplicar->Enabled=Tem;
+	BtnRecarregar->Enabled=Tem;
+	if(!Tem){
+		LblEdicao->Caption="Escolha uma figura na lista";
+		return;
+	}
+
+	const int i=Item.Indice;
+	switch(Item.Tipo){
+		case FiguraLinha:{
+			Line *Lines=Desenho[0].Lines_Atr;
+			const std::array<PontoPolar,2> P=LerPontas(Lines,i);
+			LblEdicao->Caption=Format("Linha %d",ARRAYOFCONST((i+1)));
+			PoePonto("M",P[0]);
+			PoePonto("L",P[1]);
+			PoeCampo("Giro Teta (graus)",Graus(Lines->GetAnguloTeta(i)));
+			PoeCampo("Giro Alpha (graus)",Graus(Lines->GetAnguloAlpha(i)));
+			break;
+		}
+		case FiguraQuadrilatero:{
+			static const wchar_t *Canto[4]={L"M",L"L",L"M2",L"L2"};
+			const std::array<PontoPolar,4> C=LerCantos(Desenho[0].Quadrilatero,i);
+			LblEdicao->Caption=Format("Quadrilatero %d",ARRAYOFCONST((i+1)));
+			for(int k=0;k<4;k++)
+				PoePonto(Canto[k],C[k]);
+			break;
+		}
+		case FiguraElipse:{
+			Elipse *Elipses=Desenho[0].Elipse_Atr;
+			LblEdicao->Caption=Format("Elipse %d",ARRAYOFCONST((i+1)));
+			PoeCampo("Centro X",Elipses->GetCX(i));
+			PoeCampo("Centro Y",Elipses->GetCY(i));
+			PoeCampo("Centro Z",Elipses->GetCZ(i));
+			PoeCampo("A",Elipses->GetA_Atr(i));
+			PoeCampo("B",Elipses->GetB_Atr(i));
+			PoeCampo("Giro X (graus)",Graus(Elipses->GetAnguloX(i)));
+			PoeCampo("Giro Y (graus)",Graus(Elipses->GetAnguloY(i)));
+			PoeCampo("Giro Z (graus)",Graus(Elipses->GetAnguloZ(i)));
+			break;
+		}
+	}
+}
+
+// grava nas classes o que foi digitado no VLEdicao; nada muda se um valor for invalido
+bool TDrawOpenGL::AplicaEdicao(){
+
+	ItemFigura Item;
+	if(!FiguraSelecionada(Item)){
+		Status("Nenhuma figura escolhida");
+		return false;
+	}
+
+	const int i=Item.Indice;
+	switch(Item.Tipo){
+		case FiguraLinha:{
+			Line *Lines=Desenho[0].Lines_Atr;
+			std::array<PontoPolar,2> P=LerPontas(Lines,i);
+			long double Teta,Alpha;
+			if(!LePonto("M",P[0])||!LePonto("L",P[1])||
+			   !LeCampo("Giro Teta (graus)",Teta)||!LeCampo("Giro Alpha (graus)",Alpha))
+				return false;
+			GravarPontas(Lines,i,P);
+			if(Mudou("Giro Teta (graus)"))
+				Lines->Set_AngluloTeta(Teta*M_PI/180,i);
+			if(Mudou("Giro Alpha (graus)"))
+				Lines->Set_AngluloAlpha(Alpha*M_PI/180,i);
+			break;
+		}
+		case FiguraQuadrilatero:{
+			static const wchar_t *Canto[4]={L"M",L"L",L"M2",L"L2"};
+			std::array<PontoPolar,4> C=LerCantos(Desenho[0].Quadrilatero,i);
+			for(int k=0;k<4;k++)
+				if(!LePonto(Canto[k],C[k]))
+					return false;
+			GravarCantos(Desenho[0].Quadrilatero,i,C);
+			break;
+		}
+		case FiguraElipse:{
+			Elipse *Elipses=Desenho[0].Elipse_Atr;
+			long double CX,CY,CZ,A,B,GX,GY,GZ;
+			if(!LeCampo("Centro X",CX)||!LeCampo("Centro Y",CY)||!LeCampo("Centro Z",CZ)||
+			   !LeCampo("A",A)||!LeCampo("B",B)||
+			   !LeCampo("Giro X (graus)",GX)||!LeCampo("Giro Y (graus)",GY)||!LeCampo("Giro Z (graus)",GZ))
+				return false;
+			if((A<=0)||(B<=0)){
+				Status("A e B da elipse precisam ser maiores que zero");
+				return false;
+			}
+			// o que nao foi mudado fica com o valor guardado (sem o arredondamento do texto)
+			if(!Mudou("Centro X"))	CX=Elipses->GetCX(i);
+			if(!Mudou("Centro Y"))	CY=Elipses->GetCY(i);
+			if(!Mudou("Centro Z"))	CZ=Elipses->GetCZ(i);
+			Elipses->SetCX(CX,i);
+			Elipses->SetCY(CY,i);
+			Elipses->SetCZ(CZ,i);
+			Elipses->SetCenter_Atr(CX,CY,CZ,i);
+			if(Mudou("A"))	Elipses->SetA_Atr(A,i);
+			if(Mudou("B"))	Elipses->SetB_Atr(B,i);
+			if(Mudou("Giro X (graus)"))	Elipses->Set_AnguloX(GX*M_PI/180,i);
+			if(Mudou("Giro Y (graus)"))	Elipses->Set_AnguloY(GY*M_PI/180,i);
+			if(Mudou("Giro Z (graus)"))	Elipses->Set_AnguloZ(GZ*M_PI/180,i);
+			break;
+		}
+	}
+	Status("Figura alterada");
+	return true;
 }
 
 //---------------------------------------------------------------------------
@@ -537,6 +818,66 @@ void TDrawOpenGL::DesenhaReferencia(){
 	glEnable(GL_DEPTH_TEST);
 }
 
+// a figura escolhida no CBFiguras, grossa e por cima de tudo, com os pontos marcados.
+// Chamada dentro da matriz da visao.
+void TDrawOpenGL::DesenhaSelecionada(){
+
+	ItemFigura Item;
+	if(!FiguraSelecionada(Item))
+		return;
+
+	std::vector<std::array<long double,3> > Pontos;
+	GLenum Modo=GL_LINE_STRIP;
+	const int i=Item.Indice;
+
+	switch(Item.Tipo){
+		case FiguraLinha:{
+			Line *Lines=Desenho[0].Lines_Atr;
+			Pontos.resize(2);
+			Polar3D(Lines->GetMAlpha_Atr(i),Lines->GetMVetor_Atr(i),Lines->GetMZo_Atr(i),Pontos[0].data());
+			Polar3D(Lines->GetLAlpha_Atr(i),Lines->GetLVetor_Atr(i),Lines->GetLZo_Atr(i),Pontos[1].data());
+			for(size_t k=0;k<Pontos.size();k++)
+				GiraFigura(Pontos[k].data(),Lines->GetAnguloTeta(i),Lines->GetAnguloAlpha(i));
+			break;
+		}
+		case FiguraQuadrilatero:{
+			TQuadrilatero *Quad=Desenho[0].Quadrilatero;
+			Pontos.resize(4);
+			Polar3D(Quad->GetMAlpha(i), Quad->GetMVetor(i), Quad->GetMZo(i), Pontos[0].data());
+			Polar3D(Quad->GetLAlpha(i), Quad->GetLVetor(i), Quad->GetLZo(i), Pontos[1].data());
+			Polar3D(Quad->GetMAlpha2(i),Quad->GetMVetor2(i),Quad->GetMZo2(i),Pontos[2].data());
+			Polar3D(Quad->GetLAlpha2(i),Quad->GetLVetor2(i),Quad->GetLZo2(i),Pontos[3].data());
+			Modo=GL_LINE_LOOP;
+			break;
+		}
+		case FiguraElipse:{
+			Pontos.resize(PontosElipse);
+			for(int k=0;k<PontosElipse;k++)
+				PontoElipse3D(Desenho[0].Elipse_Atr,i,k,Pontos[k].data());
+			break;
+		}
+	}
+
+	glDisable(GL_DEPTH_TEST);
+	glColor3f(1.0f,1.0f,0.4f);
+	glLineWidth(3);
+	glBegin(Modo);
+	for(size_t k=0;k<Pontos.size();k++)
+		Vertice(Pontos[k].data());
+	glEnd();
+	glLineWidth(1);
+
+	// pontos que podem ser remodelados (na elipse, so o comeco do contorno)
+	glPointSize(7);
+	glBegin(GL_POINTS);
+	const size_t Marcados=(Item.Tipo==FiguraElipse)? 1 : Pontos.size();
+	for(size_t k=0;k<Marcados;k++)
+		Vertice(Pontos[k].data());
+	glEnd();
+	glPointSize(1);
+	glEnable(GL_DEPTH_TEST);
+}
+
 void TDrawOpenGL::Desenha(){
 
 	if((Desenho==NULL)||(!HandleAllocated())||(!IniciaGL()))
@@ -548,7 +889,7 @@ void TDrawOpenGL::Desenha(){
 	if(!wglMakeCurrent(hdc,hrc))
 		return;
 
-	const int Largura=std::max(ClientWidth,1);
+	const int Largura=std::max(ClientWidth-LarguraEdicao(),1);		// sem o painel de edicao, a direita
 	const int Altura=std::max(ClientHeight-AlturaFerramentas(),1);
 	glViewport(0,0,Largura,Altura);			// a parte de baixo do form, abaixo do painel
 
@@ -594,6 +935,7 @@ void TDrawOpenGL::Desenha(){
 	DesenhaQuadrilateros();
 	DesenhaLinhas();
 	DesenhaElipses();
+	DesenhaSelecionada();
 	DesenhaReferencia();
 	glPopMatrix();
 
@@ -639,27 +981,32 @@ void __fastcall TDrawOpenGL::FormMouseDown(TObject *Sender, TMouseButton Button,
 
 	Cliques.push_back(TelaDoMouse(X,Y));
 
+	bool Gravou=false;
 	switch(RGFigura->ItemIndex){
 		case FiguraLinha:
 			if(Cliques.size()==2){
 				GravaLinha();
-				Cliques.clear();
+				Gravou=true;
 			}
 			break;
 		case FiguraQuadrilatero:
 			if(Cliques.size()==4){
 				GravaQuadrilatero();
-				Cliques.clear();
+				Gravou=true;
 			}
 			break;
 		case FiguraElipse:
 			if(Cliques.size()==2){
 				GravaElipse();
-				Cliques.clear();
+				Gravou=true;
 			}
 			break;
 		default:
 			Cliques.clear();
+	}
+	if(Gravou){
+		Cliques.clear();
+		AtualizaListaFiguras();			// a figura nova entra no CBFiguras
 	}
 	Desenha();
 }
@@ -853,5 +1200,29 @@ void __fastcall TDrawOpenGL::BtnDupTetaClick(TObject *Sender)
 void __fastcall TDrawOpenGL::BtnDupAlphaClick(TObject *Sender)
 {
 	Duplica(GiroNoEixoHorizontal);
+}
+
+// escolher uma figura na lista: ela fica destacada no desenho
+void __fastcall TDrawOpenGL::CBFigurasChange(TObject *Sender)
+{
+	ItemFigura Item;
+	if(FiguraSelecionada(Item))
+		Status(CBFiguras->Items->Strings[CBFiguras->ItemIndex]);
+	CarregaEdicao();
+	Desenha();
+}
+
+void __fastcall TDrawOpenGL::BtnAplicarClick(TObject *Sender)
+{
+	if(!AplicaEdicao())
+		return;
+	AtualizaListaFiguras();			// o texto da lista e a edicao com os valores novos
+	Desenha();
+}
+
+void __fastcall TDrawOpenGL::BtnRecarregarClick(TObject *Sender)
+{
+	CarregaEdicao();				// desiste do que foi digitado
+	Status("Valores da figura recarregados");
 }
 //---------------------------------------------------------------------------

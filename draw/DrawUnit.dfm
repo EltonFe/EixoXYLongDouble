@@ -25,7 +25,7 @@ object DrawOpenGL: TDrawOpenGL
     Left = 0
     Top = 0
     Width = 1180
-    Height = 70
+    Height = 98
     Align = alTop
     BevelOuter = bvNone
     ParentBackground = False
@@ -41,10 +41,17 @@ object DrawOpenGL: TDrawOpenGL
       Left = 1068
       Top = 8
       Width = 108
-      Height = 54
+      Height = 84
       AutoSize = False
       Caption = 'Pronto'
       WordWrap = True
+    end
+    object LblFiguras: TLabel
+      Left = 6
+      Top = 74
+      Width = 42
+      Height = 15
+      Caption = 'Figuras:'
     end
     object RGFigura: TRadioGroup
       Left = 4
@@ -196,6 +203,68 @@ object DrawOpenGL: TDrawOpenGL
       Caption = 'Dup. Alpha'
       TabOrder = 14
       OnClick = BtnDupAlphaClick
+    end
+    object CBFiguras: TComboBox
+      Left = 54
+      Top = 70
+      Width = 1008
+      Height = 23
+      Style = csDropDownList
+      DropDownCount = 20
+      TabOrder = 15
+      OnChange = CBFigurasChange
+    end
+  end
+  object PnlEdicao: TPanel
+    Left = 880
+    Top = 98
+    Width = 300
+    Height = 542
+    Align = alRight
+    BevelOuter = bvNone
+    ParentBackground = False
+    TabOrder = 1
+    object LblEdicao: TLabel
+      Left = 6
+      Top = 4
+      Width = 288
+      Height = 15
+      AutoSize = False
+      Caption = 'Escolha uma figura na lista'
+    end
+    object VLEdicao: TValueListEditor
+      Left = 4
+      Top = 24
+      Width = 292
+      Height = 478
+      Anchors = [akLeft, akTop, akRight, akBottom]
+      TabOrder = 0
+      TitleCaptions.Strings = (
+        'Campo'
+        'Valor')
+      ColWidths = (
+        150
+        136)
+    end
+    object BtnAplicar: TButton
+      Left = 4
+      Top = 510
+      Width = 90
+      Height = 26
+      Anchors = [akLeft, akBottom]
+      Caption = 'Aplicar'
+      TabOrder = 1
+      OnClick = BtnAplicarClick
+    end
+    object BtnRecarregar: TButton
+      Left = 98
+      Top = 510
+      Width = 90
+      Height = 26
+      Anchors = [akLeft, akBottom]
+      Caption = 'Recarregar'
+      TabOrder = 2
+      OnClick = BtnRecarregarClick
     end
   end
   object SaveDialog1: TSaveDialog

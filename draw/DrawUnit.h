@@ -9,6 +9,8 @@
 #include <Vcl.Forms.hpp>
 #include <Vcl.ExtCtrls.hpp>
 #include <Vcl.Dialogs.hpp>
+#include <Vcl.Grids.hpp>
+#include <Vcl.ValEdit.hpp>
 #include <vector>
 #include "../Arquivo.h"
 #include "../Geometria.h"
@@ -45,6 +47,13 @@ __published:	// IDE-managed Components
 	TButton *BtnDupTeta;
 	TButton *BtnDupAlpha;
 	TLabel *LblStatus;
+	TLabel *LblFiguras;
+	TComboBox *CBFiguras;
+	TPanel *PnlEdicao;
+	TLabel *LblEdicao;
+	TValueListEditor *VLEdicao;
+	TButton *BtnAplicar;
+	TButton *BtnRecarregar;
 	TSaveDialog *SaveDialog1;
 	TOpenDialog *OpenDialog1;
 	void __fastcall FormCreate(TObject *Sender);
@@ -69,7 +78,22 @@ __published:	// IDE-managed Components
 	void __fastcall BtnAbrirDENClick(TObject *Sender);
 	void __fastcall BtnDupTetaClick(TObject *Sender);
 	void __fastcall BtnDupAlphaClick(TObject *Sender);
+	void __fastcall CBFigurasChange(TObject *Sender);
+	void __fastcall BtnAplicarClick(TObject *Sender);
+	void __fastcall BtnRecarregarClick(TObject *Sender);
 private:	// User declarations
+
+	// valores como foram carregados no VLEdicao: o Aplicar compara com eles para
+	// saber se um ponto foi mudado pelo Vetor/Alpha (polar) ou pelo Xo/Yo
+	TStringList *ValoresCarregados;
+
+	// uma figura do desenho, como aparece no CBFiguras: o tipo (FiguraLinha,
+	// FiguraQuadrilatero ou FiguraElipse) e o indice dela na sua classe
+	struct ItemFigura{
+		int Tipo;
+		int Indice;
+	};
+	std::vector<ItemFigura> Figuras;	// Figuras[k] e o item k do CBFiguras
 
 	// ponto na tela da visao 2D, ja em unidades do desenho (sem a escala do zoom)
 	struct PontoTela{
@@ -122,6 +146,20 @@ private:	// User declarations
 	void DesenhaElipses();
 	void DesenhaPrevia();
 	void DesenhaReferencia();
+	void DesenhaSelecionada();
+
+	void AtualizaListaFiguras();
+	bool FiguraSelecionada(ItemFigura &Item);
+
+	int LarguraEdicao();
+	void CarregaEdicao();
+	void PoeCampo(const UnicodeString &Campo,long double Valor);
+	void PoePonto(const UnicodeString &Nome,const PontoPolar &P);
+	bool LeCampo(const UnicodeString &Campo,long double &Valor);
+	bool Mudou(const UnicodeString &Campo);
+	bool LePonto(const UnicodeString &Nome,PontoPolar &P);
+	bool AplicaEdicao();
+
 	void __fastcall FormMouseLeave(TObject *Sender);
 	void __fastcall RGVisaoBotaoMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
 	void ReiniciaVisao();
