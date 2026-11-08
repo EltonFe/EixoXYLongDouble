@@ -214,6 +214,18 @@ object DrawOpenGL: TDrawOpenGL
       TabOrder = 15
       OnChange = CBFigurasChange
     end
+    object ChkEditarVertices: TCheckBox
+      Left = 448
+      Top = 48
+      Width = 190
+      Height = 19
+      Hint = 'Clique num v'#233'rtice e arraste para remodelar a figura'
+      Caption = 'Editar v'#233'rtices'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 16
+      OnClick = ChkEditarVerticesClick
+    end
   end
   object PnlEdicao: TPanel
     Left = 880

@@ -46,6 +46,24 @@ static void GiraFigura(long double xyz[3],long double Teta,long double Alpha){
 	xyz[2]=y1*std::sin(Alpha)+z*std::cos(Alpha);
 }
 
+// o contrario do GiraFigura: desfaz o Alpha (em volta de Xo) e depois o Teta (Zo)
+static void DesfazGiroFigura(long double xyz[3],long double Teta,long double Alpha){
+	const long double x=xyz[0],y=xyz[1],z=xyz[2];
+	const long double y1=y*std::cos(Alpha)+z*std::sin(Alpha);
+	xyz[2]=-y*std::sin(Alpha)+z*std::cos(Alpha);
+	xyz[0]=x*std::cos(Teta)+y1*std::sin(Teta);
+	xyz[1]=-x*std::sin(Teta)+y1*std::cos(Teta);
+}
+
+// eixos do plano da elipse em x,y,z (0,1,2): U recebe o A, V o B e N a inclinacao
+static void EixosDaElipse(int Tipo,int &U,int &V,int &N){
+	switch(Tipo){
+		case 1:		U=0; V=2; N=1; break;		// plano XZ
+		case 2:		U=1; V=2; N=0; break;		// plano YZ
+		default:	U=0; V=1; N=2; break;		// plano XY
+	}
+}
+
 // ponto guardado em polar (Alpha,Vetor) com a altura Zo -> x,y,z
 static void Polar3D(long double Alpha,long double Vetor,long double Zo,long double xyz[3]){
 	xyz[0]=std::cos(Alpha)*Vetor;
@@ -81,6 +99,11 @@ __fastcall TDrawOpenGL::TDrawOpenGL(TComponent* Owner)
 	UltimoX=UltimoY=0;
 	ComecoDuplicacao=true;
 	ValoresCarregados=new TStringList();
+	Arrastando=false;
+	TemVerticeSobMouse=false;
+	VerticeAtivo=VerticeSobMouse=VerticeFigura{-1,-1,-1};
+	ProfArraste=0;
+	InicioArraste[0]=InicioArraste[1]=InicioArraste[2]=0;
 }
 //---------------------------------------------------------------------------
 
@@ -668,6 +691,250 @@ bool TDrawOpenGL::AplicaEdicao(){
 }
 
 //---------------------------------------------------------------------------
+// Edicao dos vertices com o mouse (ChkEditarVertices): clica num vertice para
+// escolher e arrasta para mudar a posicao. O vertice anda no plano da tela e
+// fica com a profundidade que tinha. So na visao 2D.
+//---------------------------------------------------------------------------
+
+bool TDrawOpenGL::EditandoVertices(){
+	return ChkEditarVertices->Checked&&(!ChkPerspectiva->Checked);
+}
+
+// todos os vertices do desenho que podem ser arrastados
+void TDrawOpenGL::ListaVertices(std::vector<VerticeFigura> &Vertices){
+	Vertices.clear();
+	for(int i=0;i<Desenho[0].Lines_Atr->GetContador_Line();i++)
+		for(int k=0;k<2;k++)
+			Vertices.push_back(VerticeFigura{FiguraLinha,i,k});
+	for(int i=0;i<Desenho[0].Quadrilatero->GetContadorQuadrilatero();i++)
+		for(int k=0;k<4;k++)
+			Vertices.push_back(VerticeFigura{FiguraQuadrilatero,i,k});
+	for(int i=0;i<Desenho[0].Elipse_Atr->GetContadorCircle_Atr();i++)
+		for(int k=0;k<3;k++)
+			Vertices.push_back(VerticeFigura{FiguraElipse,i,k});
+}
+
+// onde o vertice aparece no mundo (ja com o giro proprio da figura)
+void TDrawOpenGL::PosicaoVertice(const VerticeFigura &V,long double xyz[3]){
+
+	const int i=V.Indice;
+	switch(V.Tipo){
+		case FiguraLinha:{
+			Line *Lines=Desenho[0].Lines_Atr;
+			if(V.Ponto==0)
+				Polar3D(Lines->GetMAlpha_Atr(i),Lines->GetMVetor_Atr(i),Lines->GetMZo_Atr(i),xyz);
+			else
+				Polar3D(Lines->GetLAlpha_Atr(i),Lines->GetLVetor_Atr(i),Lines->GetLZo_Atr(i),xyz);
+			GiraFigura(xyz,Lines->GetAnguloTeta(i),Lines->GetAnguloAlpha(i));
+			break;
+		}
+		case FiguraQuadrilatero:{
+			const std::array<PontoPolar,4> C=LerCantos(Desenho[0].Quadrilatero,i);
+			xyz[0]=C[V.Ponto].Xo;
+			xyz[1]=C[V.Ponto].Yo;
+			xyz[2]=C[V.Ponto].Zo;
+			break;
+		}
+		case FiguraElipse:{
+			Elipse *Elipses=Desenho[0].Elipse_Atr;
+			int U,Ve,N;
+			EixosDaElipse(Elipses->GetTipoElipse_Atr(i),U,Ve,N);
+			long double p[3]={Elipses->GetCX(i),Elipses->GetCY(i),Elipses->GetCZ(i)};
+			if(V.Ponto==1){				// ponta do eixo A (o ponto 0 do contorno)
+				p[U]+=Elipses->GetA_Atr(i);
+				p[N]+=Elipses->GetAZo_Atr(i);
+			}else if(V.Ponto==2){		// ponta do eixo B
+				p[Ve]+=Elipses->GetB_Atr(i);
+				p[N]+=Elipses->GetBZo_Atr(i);
+			}
+			long double G[3][3];
+			GiroDaElipse(Elipses->GetAnguloX(i),Elipses->GetAnguloY(i),Elipses->GetAnguloZ(i),G);
+			for(int l=0;l<3;l++)
+				xyz[l]=G[l][0]*p[0]+G[l][1]*p[1]+G[l][2]*p[2];
+			break;
+		}
+	}
+}
+
+// poe o vertice no ponto xyz do mundo e grava nas classes
+void TDrawOpenGL::MoveVertice(const VerticeFigura &V,const long double xyz[3]){
+
+	const int i=V.Indice;
+	switch(V.Tipo){
+		case FiguraLinha:{
+			Line *Lines=Desenho[0].Lines_Atr;
+			long double p[3]={xyz[0],xyz[1],xyz[2]};
+			DesfazGiroFigura(p,Lines->GetAnguloTeta(i),Lines->GetAnguloAlpha(i));
+			std::array<PontoPolar,2> P=LerPontas(Lines,i);
+			PontoPolar &Q=P[V.Ponto];
+			Q.Xo=p[0];
+			Q.Yo=p[1];
+			Q.Zo=p[2];
+			EixoXo(Q.Xo,Q.Yo,0,&Q.Alpha,&Q.Vetor);
+			GravarPontas(Lines,i,P);
+			break;
+		}
+		case FiguraQuadrilatero:{
+			std::array<PontoPolar,4> C=LerCantos(Desenho[0].Quadrilatero,i);
+			PontoPolar &Q=C[V.Ponto];
+			Q.Xo=xyz[0];
+			Q.Yo=xyz[1];
+			Q.Zo=xyz[2];
+			EixoXo(Q.Xo,Q.Yo,0,&Q.Alpha,&Q.Vetor);
+			GravarCantos(Desenho[0].Quadrilatero,i,C);
+			break;
+		}
+		case FiguraElipse:{
+			Elipse *Elipses=Desenho[0].Elipse_Atr;
+			// volta para antes do giro proprio: q = Gt*xyz (G e ortogonal)
+			long double G[3][3],q[3];
+			GiroDaElipse(Elipses->GetAnguloX(i),Elipses->GetAnguloY(i),Elipses->GetAnguloZ(i),G);
+			for(int c=0;c<3;c++)
+				q[c]=G[0][c]*xyz[0]+G[1][c]*xyz[1]+G[2][c]*xyz[2];
+
+			if(V.Ponto==0){				// centro: a elipse inteira anda
+				Elipses->SetCX(q[0],i);
+				Elipses->SetCY(q[1],i);
+				Elipses->SetCZ(q[2],i);
+				Elipses->SetCenter_Atr(q[0],q[1],q[2],i);
+			}else{						// ponta de um eixo: muda o A ou o B
+				int U,Ve,N;
+				EixosDaElipse(Elipses->GetTipoElipse_Atr(i),U,Ve,N);
+				const long double C[3]={Elipses->GetCX(i),Elipses->GetCY(i),Elipses->GetCZ(i)};
+				const long double Raio=std::max(std::hypot(q[U]-C[U],q[Ve]-C[Ve]),0.001L);
+				if(V.Ponto==1)
+					Elipses->SetA_Atr(Raio,i);
+				else
+					Elipses->SetB_Atr(Raio,i);
+			}
+			break;
+		}
+	}
+}
+
+// mundo -> tela: s = M*xyz (h, v e profundidade, em unidades do desenho)
+void TDrawOpenGL::ParaTela(const long double xyz[3],long double s[3]){
+	long double M[3][3];
+	MatrizDaVisao(M);
+	for(int l=0;l<3;l++)
+		s[l]=M[l][0]*xyz[0]+M[l][1]*xyz[1]+M[l][2]*xyz[2];
+}
+
+// tela -> mundo com uma profundidade dada: xyz = Mt*s
+void TDrawOpenGL::DaTela(long double h,long double v,long double Prof,long double xyz[3]){
+	long double M[3][3];
+	MatrizDaVisao(M);
+	for(int k=0;k<3;k++)
+		xyz[k]=M[0][k]*h+M[1][k]*v+M[2][k]*Prof;
+}
+
+// o vertice mais perto do mouse, ate 8 pixels
+bool TDrawOpenGL::AchaVertice(int X,int Y,VerticeFigura &V){
+
+	const int Topo=AlturaFerramentas();
+	const long double Cx=(ClientWidth-LarguraEdicao())/2.0L;
+	const long double Cy=Topo+(ClientHeight-Topo)/2.0L;
+	const long double Raio=8;
+
+	std::vector<VerticeFigura> Vertices;
+	ListaVertices(Vertices);
+
+	long double Melhor=Raio*Raio;
+	bool Achou=false;
+	for(size_t k=0;k<Vertices.size();k++){
+		long double p[3],s[3];
+		PosicaoVertice(Vertices[k],p);
+		ParaTela(p,s);
+		const long double dx=Cx+s[0]*Escala-X;
+		const long double dy=Cy-s[1]*Escala-Y;
+		const long double d2=dx*dx+dy*dy;
+		if(d2<=Melhor){
+			Melhor=d2;
+			V=Vertices[k];
+			Achou=true;
+		}
+	}
+	return Achou;
+}
+
+bool TDrawOpenGL::MesmoVertice(const VerticeFigura &A,const VerticeFigura &B){
+	return (A.Tipo==B.Tipo)&&(A.Indice==B.Indice)&&(A.Ponto==B.Ponto);
+}
+
+UnicodeString TDrawOpenGL::NomeVertice(const VerticeFigura &V){
+	static const wchar_t *Linha[2]={L"M",L"L"};
+	static const wchar_t *Canto[4]={L"M",L"L",L"M2",L"L2"};
+	static const wchar_t *DaElipse[3]={L"centro",L"eixo A",L"eixo B"};
+	switch(V.Tipo){
+		case FiguraLinha:			return Format("Linha %d, ponto %s",ARRAYOFCONST((V.Indice+1,UnicodeString(Linha[V.Ponto]))));
+		case FiguraQuadrilatero:	return Format("Quadrilatero %d, canto %s",ARRAYOFCONST((V.Indice+1,UnicodeString(Canto[V.Ponto]))));
+		case FiguraElipse:			return Format("Elipse %d, %s",ARRAYOFCONST((V.Indice+1,UnicodeString(DaElipse[V.Ponto]))));
+	}
+	return "";
+}
+
+// escolhe a figura no CBFiguras e mostra os valores dela no painel de edicao
+void TDrawOpenGL::SelecionaFigura(int Tipo,int Indice){
+	for(size_t k=0;k<Figuras.size();k++)
+		if((Figuras[k].Tipo==Tipo)&&(Figuras[k].Indice==Indice)){
+			CBFiguras->ItemIndex=(int)k;
+			break;
+		}
+	CarregaEdicao();
+}
+
+// o membro Cursor (PontoTela) esconde a propriedade Cursor do form
+void TDrawOpenGL::CursorDoMouse(TCursor Novo){
+	if(TControl::Cursor!=Novo)
+		TControl::Cursor=Novo;
+}
+
+// os vertices como pontos: o debaixo do mouse e o arrastado aparecem maiores.
+// Chamada dentro da matriz da visao.
+void TDrawOpenGL::DesenhaVertices(){
+
+	if(!EditandoVertices())
+		return;
+
+	std::vector<VerticeFigura> Vertices;
+	ListaVertices(Vertices);
+	long double p[3];
+
+	glDisable(GL_DEPTH_TEST);
+	// cores: MoveTo (M, M2) em lime, LineTo (L, L2) em purple e os pontos da
+	// elipse (centro, eixos A e B) em branco
+	glPointSize(6);
+	glBegin(GL_POINTS);
+	for(size_t k=0;k<Vertices.size();k++){
+		const VerticeFigura &V=Vertices[k];
+		if(V.Tipo==FiguraElipse)
+			glColor3f(0.9f,0.9f,0.9f);
+		else if((V.Ponto%2)==0)						// M (0) e M2 (2)
+			glColor3f(0.0f,1.0f,0.0f);				// lime
+		else										// L (1) e L2 (3)
+			glColor3f(0.5f,0.0f,0.5f);				// purple
+		PosicaoVertice(V,p);
+		Vertice(p);
+	}
+	glEnd();
+
+	if(Arrastando||TemVerticeSobMouse){
+		const VerticeFigura &V=Arrastando? VerticeAtivo : VerticeSobMouse;
+		PosicaoVertice(V,p);
+		glPointSize(11);
+		if(Arrastando)
+			glColor3f(1.0f,0.5f,0.1f);
+		else
+			glColor3f(0.3f,0.9f,1.0f);
+		glBegin(GL_POINTS);
+		Vertice(p);
+		glEnd();
+	}
+	glPointSize(1);
+	glEnable(GL_DEPTH_TEST);
+}
+
+//---------------------------------------------------------------------------
 // Desenho em OpenGL (a partir das classes)
 //---------------------------------------------------------------------------
 
@@ -936,6 +1203,7 @@ void TDrawOpenGL::Desenha(){
 	DesenhaLinhas();
 	DesenhaElipses();
 	DesenhaSelecionada();
+	DesenhaVertices();
 	DesenhaReferencia();
 	glPopMatrix();
 
@@ -976,6 +1244,26 @@ void __fastcall TDrawOpenGL::FormMouseDown(TObject *Sender, TMouseButton Button,
 
 	if(ChkPerspectiva->Checked){
 		Status("Na visao 3D o mouse so gira: desmarque 3D para desenhar");
+		return;
+	}
+
+	// editando vertices o clique escolhe um vertice e comeca o arraste: nao desenha
+	if(EditandoVertices()){
+		VerticeFigura V;
+		if(AchaVertice(X,Y,V)){
+			Arrastando=true;
+			VerticeAtivo=V;
+			PosicaoVertice(V,InicioArraste);
+			long double s[3];
+			ParaTela(InicioArraste,s);
+			ProfArraste=s[2];				// o vertice anda no plano da tela
+			MouseCapture=true;				// o MouseUp chega mesmo fora da janela
+			SelecionaFigura(V.Tipo,V.Indice);
+			CursorDoMouse(crSizeAll);
+			Status(NomeVertice(V)+": arraste para mudar a posicao (Esc desfaz)");
+		}else
+			Status("Nenhum vertice aqui: clique em cima de um ponto");
+		Desenha();
 		return;
 	}
 
@@ -1026,12 +1314,31 @@ void __fastcall TDrawOpenGL::FormMouseMove(TObject *Sender, TShiftState Shift, i
 		return;
 	}
 
+	if(Arrastando){
+		// o vertice vai para o mouse, com a profundidade de quando foi clicado
+		Cursor=TelaDoMouse(X,Y);
+		long double P[3];
+		DaTela(Cursor.h,Cursor.v,ProfArraste,P);
+		MoveVertice(VerticeAtivo,P);
+		Status(NomeVertice(VerticeAtivo)+Format(":  Xo=%.1f  Yo=%.1f  Zo=%.1f",
+			ARRAYOFCONST(((double)P[0],(double)P[1],(double)P[2]))));
+		Desenha();
+		return;
+	}
+
 	const bool TinhaCursor=TemCursor;
 	TemCursor=NaAreaGL(Y);
 	if(!TemCursor){
+		TemVerticeSobMouse=false;
 		if(TinhaCursor)
 			Desenha();			// mouse no painel: apaga as linhas de referencia
 		return;
+	}
+
+	// editando vertices: mao em cima de um vertice
+	if(EditandoVertices()){
+		TemVerticeSobMouse=AchaVertice(X,Y,VerticeSobMouse);
+		CursorDoMouse(TemVerticeSobMouse? crHandPoint : crDefault);
 	}
 
 	Cursor=TelaDoMouse(X,Y);
@@ -1055,6 +1362,15 @@ void __fastcall TDrawOpenGL::FormMouseUp(TObject *Sender, TMouseButton Button, T
 {
 	if(Button==mbRight)
 		Girando=false;
+
+	if((Button==mbLeft)&&Arrastando){
+		Arrastando=false;
+		MouseCapture=false;
+		CursorDoMouse(crHandPoint);
+		AtualizaListaFiguras();			// a lista e o painel de edicao com a posicao nova
+		Status(NomeVertice(VerticeAtivo)+" movido");
+		Desenha();
+	}
 }
 
 void __fastcall TDrawOpenGL::FormMouseWheel(TObject *Sender, TShiftState Shift, int WheelDelta, TPoint &MousePos, bool &Handled)
@@ -1067,8 +1383,20 @@ void __fastcall TDrawOpenGL::FormMouseWheel(TObject *Sender, TShiftState Shift, 
 
 void __fastcall TDrawOpenGL::FormKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
 {
-	if(Key==VK_ESCAPE)			// Esc desiste da figura em andamento
-		CancelaFigura();
+	if(Key!=VK_ESCAPE)
+		return;
+
+	if(Arrastando){				// Esc no arraste: o vertice volta para onde estava
+		MoveVertice(VerticeAtivo,InicioArraste);
+		Arrastando=false;
+		MouseCapture=false;
+		CursorDoMouse(crDefault);
+		AtualizaListaFiguras();
+		Status("Arraste desfeito");
+		Desenha();
+		return;
+	}
+	CancelaFigura();			// Esc desiste da figura em andamento
 }
 
 void __fastcall TDrawOpenGL::RGFiguraClick(TObject *Sender)
@@ -1210,6 +1538,20 @@ void __fastcall TDrawOpenGL::CBFigurasChange(TObject *Sender)
 		Status(CBFiguras->Items->Strings[CBFiguras->ItemIndex]);
 	CarregaEdicao();
 	Desenha();
+}
+
+void __fastcall TDrawOpenGL::ChkEditarVerticesClick(TObject *Sender)
+{
+	Arrastando=false;
+	TemVerticeSobMouse=false;
+	CursorDoMouse(crDefault);
+	if(!ChkEditarVertices->Checked)
+		Status("Desenho: o mouse volta a desenhar figuras");
+	else if(ChkPerspectiva->Checked)
+		Status("Desmarque Visualizar 3D para editar os vertices");
+	else
+		Status("Editar vertices: clique num ponto e arraste para mudar a posicao");
+	CancelaFigura();
 }
 
 void __fastcall TDrawOpenGL::BtnAplicarClick(TObject *Sender)

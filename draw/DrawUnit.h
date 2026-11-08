@@ -49,6 +49,7 @@ __published:	// IDE-managed Components
 	TLabel *LblStatus;
 	TLabel *LblFiguras;
 	TComboBox *CBFiguras;
+	TCheckBox *ChkEditarVertices;
 	TPanel *PnlEdicao;
 	TLabel *LblEdicao;
 	TValueListEditor *VLEdicao;
@@ -81,7 +82,23 @@ __published:	// IDE-managed Components
 	void __fastcall CBFigurasChange(TObject *Sender);
 	void __fastcall BtnAplicarClick(TObject *Sender);
 	void __fastcall BtnRecarregarClick(TObject *Sender);
+	void __fastcall ChkEditarVerticesClick(TObject *Sender);
 private:	// User declarations
+
+	// um vertice que pode ser arrastado: a figura (Tipo, Indice) e qual ponto dela.
+	// Linha: 0=M, 1=L. Quadrilatero: 0=M, 1=L, 2=M2, 3=L2.
+	// Elipse: 0=centro (move a elipse), 1=ponta do eixo A, 2=ponta do eixo B.
+	struct VerticeFigura{
+		int Tipo;
+		int Indice;
+		int Ponto;
+	};
+	bool Arrastando;					// botao esquerdo arrastando um vertice
+	VerticeFigura VerticeAtivo;			// o vertice arrastado
+	long double ProfArraste;			// profundidade dele na tela (fica fixa no arraste)
+	long double InicioArraste[3];		// onde ele estava, para o Esc desfazer
+	bool TemVerticeSobMouse;
+	VerticeFigura VerticeSobMouse;		// vertice debaixo do mouse (cursor de mao)
 
 	// valores como foram carregados no VLEdicao: o Aplicar compara com eles para
 	// saber se um ponto foi mudado pelo Vetor/Alpha (polar) ou pelo Xo/Yo
@@ -159,6 +176,19 @@ private:	// User declarations
 	bool Mudou(const UnicodeString &Campo);
 	bool LePonto(const UnicodeString &Nome,PontoPolar &P);
 	bool AplicaEdicao();
+
+	bool EditandoVertices();
+	void ListaVertices(std::vector<VerticeFigura> &Vertices);
+	void PosicaoVertice(const VerticeFigura &V,long double xyz[3]);
+	void MoveVertice(const VerticeFigura &V,const long double xyz[3]);
+	void ParaTela(const long double xyz[3],long double s[3]);
+	void DaTela(long double h,long double v,long double Prof,long double xyz[3]);
+	bool AchaVertice(int X,int Y,VerticeFigura &V);
+	bool MesmoVertice(const VerticeFigura &A,const VerticeFigura &B);
+	UnicodeString NomeVertice(const VerticeFigura &V);
+	void SelecionaFigura(int Tipo,int Indice);
+	void CursorDoMouse(TCursor Novo);
+	void DesenhaVertices();
 
 	void __fastcall FormMouseLeave(TObject *Sender);
 	void __fastcall RGVisaoBotaoMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
