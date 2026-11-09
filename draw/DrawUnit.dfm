@@ -207,7 +207,7 @@ object DrawOpenGL: TDrawOpenGL
     object CBFiguras: TComboBox
       Left = 54
       Top = 70
-      Width = 1008
+      Width = 480
       Height = 23
       Style = csDropDownList
       DropDownCount = 20
@@ -217,14 +217,99 @@ object DrawOpenGL: TDrawOpenGL
     object ChkEditarVertices: TCheckBox
       Left = 448
       Top = 48
-      Width = 190
+      Width = 100
       Height = 19
-      Hint = 'Clique num v'#233'rtice e arraste para remodelar a figura'
+      Hint = 'Arraste os v'#233'rtices das figuras selecionadas para remodelar'
       Caption = 'Editar v'#233'rtices'
       ParentShowHint = False
       ShowHint = True
       TabOrder = 16
       OnClick = ChkEditarVerticesClick
+    end
+    object ChkEncaixe: TCheckBox
+      Left = 552
+      Top = 48
+      Width = 88
+      Height = 19
+      Hint = 'O mouse gruda nos v'#233'rtices das figuras'
+      Caption = 'Encaixar'
+      Checked = True
+      ParentShowHint = False
+      ShowHint = True
+      State = cbChecked
+      TabOrder = 17
+    end
+    object BtnDesfazer: TButton
+      Left = 748
+      Top = 69
+      Width = 60
+      Height = 25
+      Hint = 'Desfazer (Ctrl+Z)'
+      Caption = 'Desfazer'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 18
+      OnClick = BtnDesfazerClick
+    end
+    object BtnRefazer: TButton
+      Left = 810
+      Top = 69
+      Width = 60
+      Height = 25
+      Hint = 'Refazer (Ctrl+Y)'
+      Caption = 'Refazer'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 19
+      OnClick = BtnRefazerClick
+    end
+    object LblExtrusao: TLabel
+      Left = 876
+      Top = 74
+      Width = 32
+      Height = 15
+      Caption = 'Altura'
+    end
+    object EdtExtrusao: TEdit
+      Left = 912
+      Top = 70
+      Width = 50
+      Height = 23
+      TabOrder = 20
+      Text = '50'
+    end
+    object BtnExtrudar: TButton
+      Left = 966
+      Top = 69
+      Width = 96
+      Height = 25
+      Hint = 'D'#225' altura '#224's figuras selecionadas (sem sele'#231#227'o, '#224' escolhida na lista)'
+      Caption = 'Extrudar'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 21
+      OnClick = BtnExtrudarClick
+    end
+    object ChkSelecionar: TCheckBox
+      Left = 540
+      Top = 72
+      Width = 112
+      Height = 19
+      Hint = 'Clique nas figuras ou arraste um ret'#226'ngulo em volta delas (Esc limpa)'
+      Caption = 'Selecionar figuras'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 22
+      OnClick = ChkSelecionarClick
+    end
+    object BtnLimparSelecao: TButton
+      Left = 656
+      Top = 69
+      Width = 88
+      Height = 25
+      Caption = 'Limpar sele'#231#227'o'
+      TabOrder = 23
+      OnClick = BtnLimparSelecaoClick
     end
   end
   object PnlEdicao: TPanel

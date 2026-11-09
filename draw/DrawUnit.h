@@ -50,6 +50,14 @@ __published:	// IDE-managed Components
 	TLabel *LblFiguras;
 	TComboBox *CBFiguras;
 	TCheckBox *ChkEditarVertices;
+	TCheckBox *ChkEncaixe;
+	TCheckBox *ChkSelecionar;
+	TButton *BtnLimparSelecao;
+	TButton *BtnDesfazer;
+	TButton *BtnRefazer;
+	TLabel *LblExtrusao;
+	TEdit *EdtExtrusao;
+	TButton *BtnExtrudar;
 	TPanel *PnlEdicao;
 	TLabel *LblEdicao;
 	TValueListEditor *VLEdicao;
@@ -83,6 +91,11 @@ __published:	// IDE-managed Components
 	void __fastcall BtnAplicarClick(TObject *Sender);
 	void __fastcall BtnRecarregarClick(TObject *Sender);
 	void __fastcall ChkEditarVerticesClick(TObject *Sender);
+	void __fastcall BtnDesfazerClick(TObject *Sender);
+	void __fastcall BtnRefazerClick(TObject *Sender);
+	void __fastcall BtnExtrudarClick(TObject *Sender);
+	void __fastcall ChkSelecionarClick(TObject *Sender);
+	void __fastcall BtnLimparSelecaoClick(TObject *Sender);
 private:	// User declarations
 
 	// um vertice que pode ser arrastado: a figura (Tipo, Indice) e qual ponto dela.
@@ -111,11 +124,41 @@ private:	// User declarations
 		int Indice;
 	};
 	std::vector<ItemFigura> Figuras;	// Figuras[k] e o item k do CBFiguras
+	std::vector<ItemFigura> Colecao;	// figuras selecionadas para a extrusao
+
+	// copia de todas as figuras, para o Desfazer e o Refazer (a visao nao entra)
+	struct LinhaGuardada{
+		std::array<PontoPolar,2> P;
+		COLORREF Cor;
+		long double Alpha,Beta,Teta;
+	};
+	struct QuadGuardado{
+		std::array<PontoPolar,4> C;
+		COLORREF Cor;
+	};
+	struct ElipseGuardada{
+		long double A,B,AZo,BZo,CX,CY,CZ,AnguloX,AnguloY,AnguloZ;
+		int Tipo;
+		COLORREF Cor;
+	};
+	struct EstadoDesenho{
+		std::vector<LinhaGuardada> Linhas;
+		std::vector<QuadGuardado> Quads;
+		std::vector<ElipseGuardada> Elipses;
+		Duplicador Duplicacao;
+		bool ComecoDuplicacao;
+	};
+	std::vector<EstadoDesenho> PilhaDesfazer;
+	std::vector<EstadoDesenho> PilhaRefazer;
+	EstadoDesenho EstadoAntesArraste;	// o desenho antes do arraste de um vertice
+	bool ArrasteMoveu;					// o arraste mudou algo: entra no Desfazer ao soltar
 
 	// ponto na tela da visao 2D, ja em unidades do desenho (sem a escala do zoom)
 	struct PontoTela{
 		long double h;		// eixo horizontal da visao
 		long double v;		// eixo vertical da visao
+		bool TemMundo;		// encaixou num vertice: vale o ponto Mundo, com a profundidade dele
+		long double Mundo[3];
 	};
 
 	HWND JanelaGL;			// janela em que o contexto foi criado
@@ -127,6 +170,8 @@ private:	// User declarations
 
 	std::vector<PontoTela> Cliques;		// pontos da figura que esta sendo desenhada
 	PontoTela Cursor;					// posicao do mouse, para a previa
+	bool SelecionandoRet;				// botao esquerdo arrastando o retangulo de selecao
+	PontoTela RetInicio,RetFim;			// cantos do retangulo de selecao
 	bool TemCursor;
 
 	Duplicador Duplicacao;				// originais, plano e copias deste desenho (Dup. Teta / Dup. Alpha)
@@ -183,7 +228,33 @@ private:	// User declarations
 	void MoveVertice(const VerticeFigura &V,const long double xyz[3]);
 	void ParaTela(const long double xyz[3],long double s[3]);
 	void DaTela(long double h,long double v,long double Prof,long double xyz[3]);
-	bool AchaVertice(int X,int Y,VerticeFigura &V);
+	void ListaVerticesSelecionados(std::vector<VerticeFigura> &Vertices);
+	bool AchaVertice(int X,int Y,VerticeFigura &V,const VerticeFigura *Ignora=NULL,bool SoSelecionadas=false);
+	PontoTela PontoComEncaixe(int X,int Y,const VerticeFigura *Ignora=NULL);
+	void DesenhaEncaixe();
+
+	EstadoDesenho CapturaEstado();
+	void RestauraEstado(const EstadoDesenho &E);
+	void EmpilhaDesfazer(const EstadoDesenho &Antes);
+	void Desfazer();
+	void Refazer();
+	void AtualizaBotoesDesfazer();
+
+	void AdicionaQuad(const long double P[4][3],COLORREF Cor);
+	void AdicionaLateral(const long double A[3],const long double B[3],const long double d[3],COLORREF Cor);
+	bool ExtrudaLinha(int i,long double H,const long double Tela[3]);
+	int ExtrudaQuads(const std::vector<int> &Indices,long double H,const long double Tela[3]);
+	void ExtrudaElipse(int i,long double H,const long double Tela[3]);
+	void Extruda();
+
+	bool FiguraExiste(const ItemFigura &Item);
+	void ContornoFigura(const ItemFigura &Item,std::vector<std::array<long double,3> > &Pontos,bool &Fechado);
+	int PosicaoNaColecao(const ItemFigura &Item);
+	void AlternaNaColecao(const ItemFigura &Item);
+	void AtualizaColecao();
+	bool AchaFigura(int X,int Y,ItemFigura &Achada);
+	void TerminaSelecao(int X,int Y);
+	void DesenhaRetanguloSelecao();
 	bool MesmoVertice(const VerticeFigura &A,const VerticeFigura &B);
 	UnicodeString NomeVertice(const VerticeFigura &V);
 	void SelecionaFigura(int Tipo,int Indice);

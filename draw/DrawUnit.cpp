@@ -64,6 +64,39 @@ static void EixosDaElipse(int Tipo,int &U,int &V,int &N){
 	}
 }
 
+// n = (B-A) x d
+static void Produto(const long double B[3],const long double A[3],const long double d[3],long double n[3]){
+	const long double e[3]={B[0]-A[0],B[1]-A[1],B[2]-A[2]};
+	n[0]=e[1]*d[2]-e[2]*d[1];
+	n[1]=e[2]*d[0]-e[0]*d[2];
+	n[2]=e[0]*d[1]-e[1]*d[0];
+}
+
+static long double Modulo(const long double v[3]){
+	return std::hypot(std::hypot(v[0],v[1]),v[2]);
+}
+
+// a cor escurecida conforme a direcao n da face: sem isso um solido de uma cor so
+// viraria uma mancha, porque o desenho nao usa iluminacao do OpenGL
+static COLORREF CorSombreada(COLORREF Cor,const long double n[3]){
+	COLORREF RGBCor=TColorParaCOLORREF(Cor);
+	if(RGBCor==RGB(0,0,0))
+		RGBCor=RGB(255,255,255);			// o preto aparece branco na tela (CorGL)
+	const long double Tam=Modulo(n);
+	const long double Luz=(Tam>0)? std::fabs(n[0]*-0.42L+n[1]*0.51L+n[2]*0.75L)/Tam : 1;
+	const long double f=0.45L+0.55L*std::min(Luz,1.0L);
+	return RGB((int)(GetRValue(RGBCor)*f),(int)(GetGValue(RGBCor)*f),(int)(GetBValue(RGBCor)*f));
+}
+
+// aceita ponto ou virgula como separador decimal
+static bool LeNumero(const UnicodeString &Original,double &Valor){
+	const UnicodeString Separador=FormatSettings.DecimalSeparator;
+	UnicodeString Texto=Trim(Original);
+	Texto=StringReplace(Texto,".",Separador,TReplaceFlags()<<rfReplaceAll);
+	Texto=StringReplace(Texto,",",Separador,TReplaceFlags()<<rfReplaceAll);
+	return TryStrToFloat(Texto,Valor);
+}
+
 // ponto guardado em polar (Alpha,Vetor) com a altura Zo -> x,y,z
 static void Polar3D(long double Alpha,long double Vetor,long double Zo,long double xyz[3]){
 	xyz[0]=std::cos(Alpha)*Vetor;
@@ -104,6 +137,12 @@ __fastcall TDrawOpenGL::TDrawOpenGL(TComponent* Owner)
 	VerticeAtivo=VerticeSobMouse=VerticeFigura{-1,-1,-1};
 	ProfArraste=0;
 	InicioArraste[0]=InicioArraste[1]=InicioArraste[2]=0;
+	ArrasteMoveu=false;
+	Cursor.h=Cursor.v=0;
+	Cursor.TemMundo=false;
+	EstadoAntesArraste.ComecoDuplicacao=true;
+	SelecionandoRet=false;
+	RetInicio=RetFim=Cursor;
 }
 //---------------------------------------------------------------------------
 
@@ -125,6 +164,7 @@ void __fastcall TDrawOpenGL::FormCreate(TObject *Sender)
 			Botao->OnMouseUp=RGVisaoBotaoMouseUp;
 	}
 	AtualizaListaFiguras();
+	AtualizaBotoesDesfazer();
 	Status("Linha: clique no inicio e no fim. Botao direito arrastando gira a visao.");
 }
 
@@ -210,6 +250,7 @@ TDrawOpenGL::PontoTela TDrawOpenGL::TelaDoMouse(int X,int Y){
 	PontoTela P;
 	P.h=(X-Cx)/Escala;
 	P.v=(Cy-Y)/Escala;			// na tela o y cresce para baixo
+	P.TemMundo=false;
 	return P;
 }
 
@@ -268,6 +309,13 @@ void TDrawOpenGL::MatrizDaVisao(long double M[3][3]){
 
 // ponto da tela + profundidade -> mundo: p = Mt*s (M e ortogonal)
 void TDrawOpenGL::TelaParaMundo(const PontoTela &P,long double xyz[3]){
+
+	if(P.TemMundo){				// encaixado num vertice: e exatamente aquele ponto
+		xyz[0]=P.Mundo[0];
+		xyz[1]=P.Mundo[1];
+		xyz[2]=P.Mundo[2];
+		return;
+	}
 
 	long double M[3][3];
 	MatrizDaVisao(M);
@@ -395,6 +443,7 @@ void TDrawOpenGL::CancelaFigura(){
 
 // mais uma copia girada de cada figura, como o Duplica Teta / Duplica Alpha do EixoXY
 void TDrawOpenGL::Duplica(TipoGiro Tipo){
+	EmpilhaDesfazer(CapturaEstado());
 	Duplicacao.Duplica(Desenho,Desenho[0].GetAlpha_B_T(),Visao(),ComecoDuplicacao,Tipo,PassoGiro);
 	ComecoDuplicacao=false;
 	AtualizaListaFiguras();
@@ -412,12 +461,18 @@ void TDrawOpenGL::Gira(int Eixo,long double Angulo){
 
 // troca o desenho (limpar ou abrir): o anterior e liberado
 void TDrawOpenGL::NovoDesenho(Objetos *Novo){
+	{
+		const EstadoDesenho Antes=CapturaEstado();
+		if((!Antes.Linhas.empty())||(!Antes.Quads.empty())||(!Antes.Elipses.empty()))
+			EmpilhaDesfazer(Antes);			// o Desfazer traz de volta o desenho limpo ou trocado
+	}
 	delete[] Desenho;
 	Desenho=Novo;
 	Duplicacao.EsquecePlanos();			// figuras novas: nenhuma tem plano guardado
 	ComecoDuplicacao=true;
 	Cliques.clear();
 	CBFiguras->ItemIndex=-1;			// os indices antigos nao valem para o desenho novo
+	Colecao.clear();
 	AtualizaListaFiguras();
 	Desenha();
 }
@@ -436,6 +491,12 @@ void TDrawOpenGL::AtualizaListaFiguras(){
 
 	ItemFigura Anterior;
 	const bool TinhaSelecao=FiguraSelecionada(Anterior);
+
+	// o Desfazer pode ter apagado figuras da colecao
+	for(size_t k=Colecao.size();k-->0;)
+		if(!FiguraExiste(Colecao[k]))
+			Colecao.erase(Colecao.begin()+k);
+	AtualizaColecao();
 
 	Figuras.clear();
 	CBFiguras->Items->BeginUpdate();
@@ -497,6 +558,11 @@ bool TDrawOpenGL::FiguraSelecionada(ItemFigura &Item){
 	if((k<0)||(k>=(int)Figuras.size()))
 		return false;
 	Item=Figuras[k];
+	return FiguraExiste(Item);
+}
+
+// o indice ainda vale no desenho atual?
+bool TDrawOpenGL::FiguraExiste(const ItemFigura &Item){
 
 	switch(Item.Tipo){
 		case FiguraLinha:			return Item.Indice<Desenho[0].Lines_Atr->GetContador_Line();
@@ -714,6 +780,20 @@ void TDrawOpenGL::ListaVertices(std::vector<VerticeFigura> &Vertices){
 			Vertices.push_back(VerticeFigura{FiguraElipse,i,k});
 }
 
+// so os vertices das figuras selecionadas: a colecao e a escolhida no CBFiguras
+void TDrawOpenGL::ListaVerticesSelecionados(std::vector<VerticeFigura> &Vertices){
+	ItemFigura Escolhida;
+	const bool TemEscolhida=FiguraSelecionada(Escolhida);
+	std::vector<VerticeFigura> Todos;
+	ListaVertices(Todos);
+	Vertices.clear();
+	for(size_t k=0;k<Todos.size();k++){
+		const ItemFigura Item={Todos[k].Tipo,Todos[k].Indice};
+		if((PosicaoNaColecao(Item)>=0)||(TemEscolhida&&(Item.Tipo==Escolhida.Tipo)&&(Item.Indice==Escolhida.Indice)))
+			Vertices.push_back(Todos[k]);
+	}
+}
+
 // onde o vertice aparece no mundo (ja com o giro proprio da figura)
 void TDrawOpenGL::PosicaoVertice(const VerticeFigura &V,long double xyz[3]){
 
@@ -829,7 +909,7 @@ void TDrawOpenGL::DaTela(long double h,long double v,long double Prof,long doubl
 }
 
 // o vertice mais perto do mouse, ate 8 pixels
-bool TDrawOpenGL::AchaVertice(int X,int Y,VerticeFigura &V){
+bool TDrawOpenGL::AchaVertice(int X,int Y,VerticeFigura &V,const VerticeFigura *Ignora,bool SoSelecionadas){
 
 	const int Topo=AlturaFerramentas();
 	const long double Cx=(ClientWidth-LarguraEdicao())/2.0L;
@@ -837,11 +917,16 @@ bool TDrawOpenGL::AchaVertice(int X,int Y,VerticeFigura &V){
 	const long double Raio=8;
 
 	std::vector<VerticeFigura> Vertices;
-	ListaVertices(Vertices);
+	if(SoSelecionadas)
+		ListaVerticesSelecionados(Vertices);
+	else
+		ListaVertices(Vertices);			// o encaixe gruda em qualquer figura
 
 	long double Melhor=Raio*Raio;
 	bool Achou=false;
 	for(size_t k=0;k<Vertices.size();k++){
+		if((Ignora!=NULL)&&(Vertices[k].Tipo==Ignora->Tipo)&&(Vertices[k].Indice==Ignora->Indice))
+			continue;					// nao encaixa na propria figura arrastada
 		long double p[3],s[3];
 		PosicaoVertice(Vertices[k],p);
 		ParaTela(p,s);
@@ -855,6 +940,559 @@ bool TDrawOpenGL::AchaVertice(int X,int Y,VerticeFigura &V){
 		}
 	}
 	return Achou;
+}
+
+// ponto do mouse; com o Encaixar marcado, gruda no vertice mais perto (ate 8 pixels)
+TDrawOpenGL::PontoTela TDrawOpenGL::PontoComEncaixe(int X,int Y,const VerticeFigura *Ignora){
+
+	PontoTela P=TelaDoMouse(X,Y);
+	VerticeFigura V;
+	if(ChkEncaixe->Checked&&(!ChkPerspectiva->Checked)&&AchaVertice(X,Y,V,Ignora)){
+		long double s[3];
+		PosicaoVertice(V,P.Mundo);
+		ParaTela(P.Mundo,s);
+		P.h=s[0];
+		P.v=s[1];
+		P.TemMundo=true;
+	}
+	return P;
+}
+
+// marca o vertice em que o mouse encaixou. Chamada dentro da matriz da visao.
+void TDrawOpenGL::DesenhaEncaixe(){
+
+	if((!TemCursor)||(!Cursor.TemMundo)||ChkPerspectiva->Checked)
+		return;
+
+	glDisable(GL_DEPTH_TEST);
+	glPointSize(11);
+	glColor3f(1.0f,0.2f,0.9f);
+	glBegin(GL_POINTS);
+	Vertice(Cursor.Mundo);
+	glEnd();
+	glPointSize(1);
+	glEnable(GL_DEPTH_TEST);
+}
+
+//---------------------------------------------------------------------------
+// Desfazer e Refazer: antes de cada mudanca o desenho inteiro e copiado
+//---------------------------------------------------------------------------
+
+TDrawOpenGL::EstadoDesenho TDrawOpenGL::CapturaEstado(){
+
+	EstadoDesenho E;
+
+	Line *Lines=Desenho[0].Lines_Atr;
+	E.Linhas.resize(Lines->GetContador_Line());
+	for(int i=0;i<(int)E.Linhas.size();i++){
+		LinhaGuardada &L=E.Linhas[i];
+		L.P=LerPontas(Lines,i);
+		L.Cor=Lines->GetCor_Line(i);
+		L.Alpha=Lines->GetAnguloAlpha(i);
+		L.Beta=Lines->GetAnguloBeta(i);
+		L.Teta=Lines->GetAnguloTeta(i);
+	}
+
+	TQuadrilatero *Quad=Desenho[0].Quadrilatero;
+	E.Quads.resize(Quad->GetContadorQuadrilatero());
+	for(int i=0;i<(int)E.Quads.size();i++){
+		E.Quads[i].C=LerCantos(Quad,i);
+		E.Quads[i].Cor=Quad->GetCor(i);
+	}
+
+	Elipse *Elipses=Desenho[0].Elipse_Atr;
+	E.Elipses.resize(Elipses->GetContadorCircle_Atr());
+	for(int i=0;i<(int)E.Elipses.size();i++){
+		ElipseGuardada &G=E.Elipses[i];
+		G.A=Elipses->GetA_Atr(i);
+		G.B=Elipses->GetB_Atr(i);
+		G.AZo=Elipses->GetAZo_Atr(i);
+		G.BZo=Elipses->GetBZo_Atr(i);
+		G.CX=Elipses->GetCX(i);
+		G.CY=Elipses->GetCY(i);
+		G.CZ=Elipses->GetCZ(i);
+		G.AnguloX=Elipses->GetAnguloX(i);
+		G.AnguloY=Elipses->GetAnguloY(i);
+		G.AnguloZ=Elipses->GetAnguloZ(i);
+		G.Tipo=Elipses->GetTipoElipse_Atr(i);
+		G.Cor=Elipses->GetColor_Circle_Atr(i);
+	}
+
+	E.Duplicacao=Duplicacao;
+	E.ComecoDuplicacao=ComecoDuplicacao;
+	return E;
+}
+
+// monta um desenho novo com as figuras guardadas; a visao continua como esta
+void TDrawOpenGL::RestauraEstado(const EstadoDesenho &E){
+
+	Objetos *Novo=new Objetos[1]();
+	long double ABT[3];
+	Desenho[0].GetAlpha_B_T(ABT);
+	Novo[0].SetAlpha_B_T(ABT);
+
+	const int NL=(int)E.Linhas.size();
+	Line *Lines=Novo[0].Lines_Atr;
+	Lines->Alocando_Line(NL);
+	for(int i=0;i<NL;i++){
+		GravarPontas(Lines,i,E.Linhas[i].P);
+		Lines->SetCor_Line(E.Linhas[i].Cor,i);
+		Lines->Set_AngluloAlpha(E.Linhas[i].Alpha,i);
+		Lines->Set_AngluloBeta(E.Linhas[i].Beta,i);
+		Lines->Set_AngluloTeta(E.Linhas[i].Teta,i);
+	}
+	Lines->SetContador_Line(NL);
+
+	const int NQ=(int)E.Quads.size();
+	TQuadrilatero *Quad=Novo[0].Quadrilatero;
+	if(NQ>0)
+		Quad->AlocarQuadrilatero(NQ);
+	for(int i=0;i<NQ;i++){
+		GravarCantos(Quad,i,E.Quads[i].C);
+		Quad->SetCor(E.Quads[i].Cor,i);
+	}
+	Quad->SetContadorQuadrilatero(NQ);
+
+	const int NE=(int)E.Elipses.size();
+	Elipse *Elipses=Novo[0].Elipse_Atr;
+	Elipses->AlocaElipse_Atr(NE);
+	for(int i=0;i<NE;i++){
+		const ElipseGuardada &G=E.Elipses[i];
+		Elipses->SetA_Atr(G.A,i);
+		Elipses->SetB_Atr(G.B,i);
+		Elipses->SetAZo_Atr(G.AZo,i);
+		Elipses->SetBZo_Atr(G.BZo,i);
+		Elipses->SetCX(G.CX,i);
+		Elipses->SetCY(G.CY,i);
+		Elipses->SetCZ(G.CZ,i);
+		Elipses->SetCenter_Atr(G.CX,G.CY,G.CZ,i);
+		Elipses->Set_AnguloX(G.AnguloX,i);
+		Elipses->Set_AnguloY(G.AnguloY,i);
+		Elipses->Set_AnguloZ(G.AnguloZ,i);
+		Elipses->SetTipoElipse_Atr(G.Tipo,i);
+		Elipses->SetColor_Circle_Atr(G.Cor,i);
+	}
+	Elipses->SetContadorCircle_Atr(NE);
+
+	delete[] Desenho;
+	Desenho=Novo;
+	Duplicacao=E.Duplicacao;
+	ComecoDuplicacao=E.ComecoDuplicacao;
+	Cliques.clear();
+	TemVerticeSobMouse=false;
+	AtualizaListaFiguras();
+	Desenha();
+}
+
+// Antes e o desenho de antes da mudanca que acabou de ser feita (ou vai ser)
+void TDrawOpenGL::EmpilhaDesfazer(const EstadoDesenho &Antes){
+	static const size_t MaximoDesfazer=100;
+	PilhaDesfazer.push_back(Antes);
+	if(PilhaDesfazer.size()>MaximoDesfazer)
+		PilhaDesfazer.erase(PilhaDesfazer.begin());
+	PilhaRefazer.clear();
+	AtualizaBotoesDesfazer();
+}
+
+void TDrawOpenGL::Desfazer(){
+	if(Arrastando||PilhaDesfazer.empty())
+		return;
+	PilhaRefazer.push_back(CapturaEstado());
+	const EstadoDesenho E=PilhaDesfazer.back();
+	PilhaDesfazer.pop_back();
+	RestauraEstado(E);
+	AtualizaBotoesDesfazer();
+	Status("Desfeito");
+}
+
+void TDrawOpenGL::Refazer(){
+	if(Arrastando||PilhaRefazer.empty())
+		return;
+	PilhaDesfazer.push_back(CapturaEstado());
+	const EstadoDesenho E=PilhaRefazer.back();
+	PilhaRefazer.pop_back();
+	RestauraEstado(E);
+	AtualizaBotoesDesfazer();
+	Status("Refeito");
+}
+
+void TDrawOpenGL::AtualizaBotoesDesfazer(){
+	BtnDesfazer->Enabled=!PilhaDesfazer.empty();
+	BtnRefazer->Enabled=!PilhaRefazer.empty();
+}
+
+//---------------------------------------------------------------------------
+// Extrusao da figura escolhida no CBFiguras: as figuras novas sao quadrilateros
+// comuns, que depois podem ser editados como qualquer outro
+//---------------------------------------------------------------------------
+
+void TDrawOpenGL::AdicionaQuad(const long double P[4][3],COLORREF Cor){
+
+	TQuadrilatero *Quad=Desenho[0].Quadrilatero;
+	const int Novo=Quad->GetContadorQuadrilatero();
+	std::array<PontoPolar,4> C;
+
+	for(int k=0;k<4;k++){
+		C[k].Xo=P[k][0];
+		C[k].Yo=P[k][1];
+		C[k].Zo=P[k][2];
+		EixoXo(C[k].Xo,C[k].Yo,0,&C[k].Alpha,&C[k].Vetor);
+	}
+
+	Quad->AlocarQuadrilatero(Novo+1);
+	GravarCantos(Quad,Novo,C);
+	Quad->SetCor(Cor,Novo);
+	Quad->SetContadorQuadrilatero(Novo+1);
+	Duplicacao.GuardaPlanoQuad(Novo,PlanoAtual());
+}
+
+// a parede que sai da aresta A-B na direcao d, escurecida conforme a direcao dela
+void TDrawOpenGL::AdicionaLateral(const long double A[3],const long double B[3],const long double d[3],COLORREF Cor){
+
+	const long double P[4][3]={
+		{A[0],A[1],A[2]},
+		{B[0],B[1],B[2]},
+		{B[0]+d[0],B[1]+d[1],B[2]+d[2]},
+		{A[0]+d[0],A[1]+d[1],A[2]+d[2]}
+	};
+	long double n[3];
+	Produto(P[1],P[0],d,n);
+	AdicionaQuad(P,CorSombreada(Cor,n));
+}
+
+// a linha vira uma parede, saindo da tela (false: ela esta na direcao da extrusao)
+bool TDrawOpenGL::ExtrudaLinha(int i,long double H,const long double Tela[3]){
+
+	long double A[3],B[3];
+	PosicaoVertice(VerticeFigura{FiguraLinha,i,0},A);
+	PosicaoVertice(VerticeFigura{FiguraLinha,i,1},B);
+	const long double d[3]={Tela[0]*H,Tela[1]*H,Tela[2]*H};
+	long double n[3];
+	Produto(B,A,d,n);
+	if(Modulo(n)<1e-9L)
+		return false;
+	AdicionaLateral(A,B,d,Desenho[0].Lines_Atr->GetCor_Line(i));
+	return true;
+}
+
+// cada quadrilatero ganha o topo e as paredes, na normal dele virada para quem olha.
+// A aresta dividida com outro quadrilatero da colecao que sobe na mesma direcao
+// ficaria dentro do solido: ela nao ganha parede. Devolve quantos foram extrudados.
+int TDrawOpenGL::ExtrudaQuads(const std::vector<int> &Indices,long double H,const long double Tela[3]){
+
+	struct QuadExtrudado{
+		long double C[4][3];
+		long double d[3];
+		COLORREF Cor;
+	};
+	std::vector<QuadExtrudado> Quads;
+
+	for(size_t q=0;q<Indices.size();q++){
+		QuadExtrudado Q;
+		for(int k=0;k<4;k++)
+			PosicaoVertice(VerticeFigura{FiguraQuadrilatero,Indices[q],k},Q.C[k]);
+
+		// normal pelo metodo de Newell: funciona mesmo com dois cantos iguais
+		long double n[3]={0,0,0};
+		for(int k=0;k<4;k++){
+			const long double *a=Q.C[k],*b=Q.C[(k+1)%4];
+			n[0]+=(a[1]-b[1])*(a[2]+b[2]);
+			n[1]+=(a[2]-b[2])*(a[0]+b[0]);
+			n[2]+=(a[0]-b[0])*(a[1]+b[1]);
+		}
+		const long double Tam=Modulo(n);
+		if(Tam<1e-9L)
+			continue;					// sem area: nao da para extrudar
+		const long double Sinal=(n[0]*Tela[0]+n[1]*Tela[1]+n[2]*Tela[2]<0)? -1.0L : 1.0L;
+		for(int c=0;c<3;c++)
+			Q.d[c]=n[c]/Tam*H*Sinal;
+		Q.Cor=Desenho[0].Quadrilatero->GetCor(Indices[q]);
+		Quads.push_back(Q);
+	}
+
+	const long double Tol=1e-6L;
+	const long double TolDirecao=Tol*(1+std::fabs(H));
+	const auto Iguais=[](const long double *a,const long double *b,long double Limite){
+		return (std::fabs(a[0]-b[0])<=Limite)&&(std::fabs(a[1]-b[1])<=Limite)&&(std::fabs(a[2]-b[2])<=Limite);
+	};
+
+	for(size_t q=0;q<Quads.size();q++){
+		const QuadExtrudado &Q=Quads[q];
+
+		long double Topo[4][3];
+		for(int k=0;k<4;k++)
+			for(int c=0;c<3;c++)
+				Topo[k][c]=Q.C[k][c]+Q.d[c];
+		AdicionaQuad(Topo,Q.Cor);
+
+		for(int k=0;k<4;k++){
+			const long double *a=Q.C[k],*b=Q.C[(k+1)%4];
+			if(Iguais(a,b,1e-9L))
+				continue;				// dois cantos iguais: essa aresta nao existe
+
+			bool Interna=false;
+			for(size_t o=0;(o<Quads.size())&&(!Interna);o++){
+				if((o==q)||(!Iguais(Q.d,Quads[o].d,TolDirecao)))
+					continue;
+				for(int e=0;(e<4)&&(!Interna);e++){
+					const long double *c=Quads[o].C[e],*f=Quads[o].C[(e+1)%4];
+					Interna=(Iguais(a,c,Tol)&&Iguais(b,f,Tol))||(Iguais(a,f,Tol)&&Iguais(b,c,Tol));
+				}
+			}
+			if(!Interna)
+				AdicionaLateral(a,b,Q.d,Q.Cor);
+		}
+	}
+	return (int)Quads.size();
+}
+
+// a elipse vira um cilindro fechado
+void TDrawOpenGL::ExtrudaElipse(int i,long double H,const long double Tela[3]){
+
+	Elipse *Elipses=Desenho[0].Elipse_Atr;
+	const int Tipo=Elipses->GetTipoElipse_Atr(i);
+	int U,V,N;
+	EixosDaElipse(Tipo,U,V,N);
+
+	long double G[3][3];
+	GiroDaElipse(Elipses->GetAnguloX(i),Elipses->GetAnguloY(i),Elipses->GetAnguloZ(i),G);
+	const long double Sinal=(G[0][N]*Tela[0]+G[1][N]*Tela[1]+G[2][N]*Tela[2]<0)? -1.0L : 1.0L;
+	const long double d[3]={G[0][N]*H*Sinal,G[1][N]*H*Sinal,G[2][N]*H*Sinal};
+	const COLORREF Cor=Elipses->GetColor_Circle_Atr(i);
+
+	long double Local[3]={Elipses->GetCX(i),Elipses->GetCY(i),Elipses->GetCZ(i)};
+	long double Centro[3];
+	for(int l=0;l<3;l++)
+		Centro[l]=G[l][0]*Local[0]+G[l][1]*Local[1]+G[l][2]*Local[2];
+
+	long double Pontos[PontosElipse][3];
+	for(int k=0;k<PontosElipse;k++)
+		PontoElipse3D(Elipses,i,k,Pontos[k]);
+
+	for(int k=0;k<PontosElipse-1;k++)
+		AdicionaLateral(Pontos[k],Pontos[k+1],d,Cor);
+
+	// tampas de baixo e de cima, em leque a partir do centro
+	for(int k=0;k+2<PontosElipse;k+=2)
+		for(int Tampa=0;Tampa<2;Tampa++){
+			const long double f=Tampa? 1.0L : 0.0L;
+			long double Q[4][3];
+			for(int c=0;c<3;c++){
+				Q[0][c]=Centro[c]+f*d[c];
+				Q[1][c]=Pontos[k][c]+f*d[c];
+				Q[2][c]=Pontos[k+1][c]+f*d[c];
+				Q[3][c]=Pontos[k+2][c]+f*d[c];
+			}
+			AdicionaQuad(Q,Cor);
+		}
+
+	// o contorno de cima e uma copia da elipse, deslocada na normal dela
+	const int Novo=Elipses->GetContadorCircle_Atr();
+	Local[N]+=H*Sinal;
+	const long double A=Elipses->GetA_Atr(i),B=Elipses->GetB_Atr(i);
+	const long double AZo=Elipses->GetAZo_Atr(i),BZo=Elipses->GetBZo_Atr(i);
+	const long double AX=Elipses->GetAnguloX(i),AY=Elipses->GetAnguloY(i),AZ=Elipses->GetAnguloZ(i);
+	Elipses->AlocaElipse_Atr(Novo+1);
+	Elipses->SetA_Atr(A,Novo);
+	Elipses->SetB_Atr(B,Novo);
+	Elipses->SetAZo_Atr(AZo,Novo);
+	Elipses->SetBZo_Atr(BZo,Novo);
+	Elipses->SetCX(Local[0],Novo);
+	Elipses->SetCY(Local[1],Novo);
+	Elipses->SetCZ(Local[2],Novo);
+	Elipses->SetCenter_Atr(Local[0],Local[1],Local[2],Novo);
+	Elipses->Set_AnguloX(AX,Novo);
+	Elipses->Set_AnguloY(AY,Novo);
+	Elipses->Set_AnguloZ(AZ,Novo);
+	Elipses->SetTipoElipse_Atr(Tipo,Novo);
+	Elipses->SetColor_Circle_Atr(Cor,Novo);
+	Elipses->SetContadorCircle_Atr(Novo+1);
+	Duplicacao.GuardaPlanoCircle(Novo,PlanoAtual());
+}
+
+// extruda a colecao selecionada; sem colecao, a figura escolhida na lista.
+// Tudo entra num passo so do Desfazer.
+void TDrawOpenGL::Extruda(){
+
+	std::vector<ItemFigura> Alvos(Colecao);
+	if(Alvos.empty()){
+		ItemFigura Item;
+		if(FiguraSelecionada(Item))
+			Alvos.push_back(Item);
+	}
+	if(Alvos.empty()){
+		Status("Selecione as figuras (ou escolha uma na lista) para dar altura");
+		return;
+	}
+	double Altura;
+	if((!LeNumero(EdtExtrusao->Text,Altura))||(Altura==0)){
+		Status("Digite uma altura diferente de zero");
+		return;
+	}
+
+	// a terceira linha da matriz da visao e o eixo que sai da tela
+	long double M[3][3];
+	MatrizDaVisao(M);
+	const long double *Tela=M[2];
+	const long double H=Altura;
+	const EstadoDesenho Antes=CapturaEstado();
+	const int QuadsAntes=Desenho[0].Quadrilatero->GetContadorQuadrilatero();
+
+	int Prontas=0;
+	std::vector<int> Quads;				// os quadrilateros vao juntos, por causa das arestas comuns
+	for(size_t k=0;k<Alvos.size();k++)
+		switch(Alvos[k].Tipo){
+			case FiguraLinha:
+				if(ExtrudaLinha(Alvos[k].Indice,H,Tela))
+					Prontas++;
+				break;
+			case FiguraQuadrilatero:
+				Quads.push_back(Alvos[k].Indice);
+				break;
+			case FiguraElipse:
+				ExtrudaElipse(Alvos[k].Indice,H,Tela);
+				Prontas++;
+				break;
+		}
+	Prontas+=ExtrudaQuads(Quads,H,Tela);
+
+	if(Prontas==0){
+		Status("Nenhuma figura pode ser extrudada: sem area ou na direcao da extrusao");
+		return;
+	}
+
+	EmpilhaDesfazer(Antes);
+	Colecao.clear();					// evita extrudar de novo a mesma colecao sem querer
+	CancelaFigura();
+	AtualizaListaFiguras();
+	Desenha();
+	const int Ignoradas=(int)Alvos.size()-Prontas;
+	UnicodeString Texto=Format("Extrusao pronta: %d figuras, %d quadrilateros novos. Gire a visao para ver a altura.",
+		ARRAYOFCONST((Prontas,Desenho[0].Quadrilatero->GetContadorQuadrilatero()-QuadsAntes)));
+	if(Ignoradas>0)
+		Texto+=Format(" %d ignoradas.",ARRAYOFCONST((Ignoradas)));
+	Status(Texto);
+}
+
+//---------------------------------------------------------------------------
+// Colecao de figuras (ChkSelecionar): clique marca ou desmarca uma figura e
+// arrastar um retangulo marca as que estiverem inteiras dentro dele
+//---------------------------------------------------------------------------
+
+int TDrawOpenGL::PosicaoNaColecao(const ItemFigura &Item){
+	for(size_t k=0;k<Colecao.size();k++)
+		if((Colecao[k].Tipo==Item.Tipo)&&(Colecao[k].Indice==Item.Indice))
+			return (int)k;
+	return -1;
+}
+
+void TDrawOpenGL::AlternaNaColecao(const ItemFigura &Item){
+	const int k=PosicaoNaColecao(Item);
+	if(k>=0)
+		Colecao.erase(Colecao.begin()+k);
+	else
+		Colecao.push_back(Item);
+	AtualizaColecao();
+}
+
+// o numero de figuras aparece no botao de extrudar
+void TDrawOpenGL::AtualizaColecao(){
+	BtnExtrudar->Caption=Colecao.empty()? UnicodeString("Extrudar")
+		: Format("Extrudar (%d)",ARRAYOFCONST(((int)Colecao.size())));
+}
+
+// a figura debaixo do mouse: a linha mais perto (ate 8 pixels) ou, se nao houver,
+// o quadrilatero mais a frente que contem o ponto
+bool TDrawOpenGL::AchaFigura(int X,int Y,ItemFigura &Achada){
+
+	const PontoTela P=TelaDoMouse(X,Y);
+	const long double Raio=8/Escala;
+	long double Melhor=Raio*Raio;
+	bool Achou=false;
+	bool TemQuad=false;
+	ItemFigura Quad={0,0};
+	long double QuadProf=0;
+
+	for(size_t f=0;f<Figuras.size();f++){
+		std::vector<std::array<long double,3> > Pontos;
+		bool Fechado;
+		ContornoFigura(Figuras[f],Pontos,Fechado);
+		const size_t n=Pontos.size();
+		if(n<2)
+			continue;
+
+		long double Prof=0;
+		bool Dentro=false;
+		long double a[3],b[3];
+		const size_t Lados=Fechado? n : n-1;
+		for(size_t k=0;k<Lados;k++){
+			ParaTela(Pontos[k].data(),a);
+			ParaTela(Pontos[(k+1)%n].data(),b);
+			Prof+=a[2];
+
+			// distancia do mouse ao segmento a-b, no plano da tela
+			const long double dh=b[0]-a[0],dv=b[1]-a[1];
+			const long double L2=dh*dh+dv*dv;
+			long double t=(L2>0)? ((P.h-a[0])*dh+(P.v-a[1])*dv)/L2 : 0;
+			t=std::min(std::max(t,0.0L),1.0L);
+			const long double eh=a[0]+t*dh-P.h,ev=a[1]+t*dv-P.v;
+			const long double d2=eh*eh+ev*ev;
+			if(d2<=Melhor){
+				Melhor=d2;
+				Achada=Figuras[f];
+				Achou=true;
+			}
+
+			// o raio horizontal a partir do mouse cruza o contorno um numero impar de vezes
+			if(((a[1]>P.v)!=(b[1]>P.v))&&(P.h<a[0]+(P.v-a[1])/(b[1]-a[1])*dh))
+				Dentro=!Dentro;
+		}
+
+		if(Dentro&&(Figuras[f].Tipo==FiguraQuadrilatero)){
+			Prof/=Lados;
+			if((!TemQuad)||(Prof>QuadProf)){		// a profundidade cresce para fora da tela
+				TemQuad=true;
+				Quad=Figuras[f];
+				QuadProf=Prof;
+			}
+		}
+	}
+
+	if((!Achou)&&TemQuad){
+		Achada=Quad;
+		return true;
+	}
+	return Achou;
+}
+
+// clique: alterna a figura; arraste: junta as que estao inteiras no retangulo
+void TDrawOpenGL::TerminaSelecao(int X,int Y){
+
+	if((std::fabs(RetFim.h-RetInicio.h)*Escala<4)&&(std::fabs(RetFim.v-RetInicio.v)*Escala<4)){
+		ItemFigura Item;
+		if(AchaFigura(X,Y,Item))
+			AlternaNaColecao(Item);
+	}else{
+		const long double hMin=std::min(RetInicio.h,RetFim.h),hMax=std::max(RetInicio.h,RetFim.h);
+		const long double vMin=std::min(RetInicio.v,RetFim.v),vMax=std::max(RetInicio.v,RetFim.v);
+		for(size_t f=0;f<Figuras.size();f++){
+			if(PosicaoNaColecao(Figuras[f])>=0)
+				continue;
+			std::vector<std::array<long double,3> > Pontos;
+			bool Fechado;
+			ContornoFigura(Figuras[f],Pontos,Fechado);
+			bool Dentro=!Pontos.empty();
+			for(size_t k=0;(k<Pontos.size())&&Dentro;k++){
+				long double s[3];
+				ParaTela(Pontos[k].data(),s);
+				Dentro=(s[0]>=hMin)&&(s[0]<=hMax)&&(s[1]>=vMin)&&(s[1]<=vMax);
+			}
+			if(Dentro)
+				Colecao.push_back(Figuras[f]);
+		}
+		AtualizaColecao();
+	}
+	Status(Format("%d figuras selecionadas",ARRAYOFCONST(((int)Colecao.size()))));
 }
 
 bool TDrawOpenGL::MesmoVertice(const VerticeFigura &A,const VerticeFigura &B){
@@ -897,7 +1535,7 @@ void TDrawOpenGL::DesenhaVertices(){
 		return;
 
 	std::vector<VerticeFigura> Vertices;
-	ListaVertices(Vertices);
+	ListaVerticesSelecionados(Vertices);
 	long double p[3];
 
 	glDisable(GL_DEPTH_TEST);
@@ -1050,6 +1688,27 @@ void TDrawOpenGL::DesenhaPrevia(){
 	glPopMatrix();
 }
 
+// o retangulo de selecao sendo arrastado
+void TDrawOpenGL::DesenhaRetanguloSelecao(){
+
+	if(!SelecionandoRet)
+		return;
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glDisable(GL_DEPTH_TEST);
+	glColor3f(0.0f,1.0f,1.0f);
+	glBegin(GL_LINE_LOOP);
+	glVertex2d((double)RetInicio.h,(double)RetInicio.v);
+	glVertex2d((double)RetFim.h,(double)RetInicio.v);
+	glVertex2d((double)RetFim.h,(double)RetFim.v);
+	glVertex2d((double)RetInicio.h,(double)RetFim.v);
+	glEnd();
+	glEnable(GL_DEPTH_TEST);
+	glPopMatrix();
+}
+
 // Tres linhas de referencia ate o ponto do mouse (ja no mundo, com a profundidade):
 // de (x,0,0) no Xo, de (0,y,0) no Yo e, na direcao Zo, de (x,y,0), a projecao no XoY.
 // Tracejadas, na cor do eixo, e por cima de tudo. Chamada dentro da matriz da visao.
@@ -1085,16 +1744,11 @@ void TDrawOpenGL::DesenhaReferencia(){
 	glEnable(GL_DEPTH_TEST);
 }
 
-// a figura escolhida no CBFiguras, grossa e por cima de tudo, com os pontos marcados.
-// Chamada dentro da matriz da visao.
-void TDrawOpenGL::DesenhaSelecionada(){
+// os pontos do contorno de uma figura, no mundo
+void TDrawOpenGL::ContornoFigura(const ItemFigura &Item,std::vector<std::array<long double,3> > &Pontos,bool &Fechado){
 
-	ItemFigura Item;
-	if(!FiguraSelecionada(Item))
-		return;
-
-	std::vector<std::array<long double,3> > Pontos;
-	GLenum Modo=GL_LINE_STRIP;
+	Pontos.clear();
+	Fechado=false;
 	const int i=Item.Indice;
 
 	switch(Item.Tipo){
@@ -1114,7 +1768,7 @@ void TDrawOpenGL::DesenhaSelecionada(){
 			Polar3D(Quad->GetLAlpha(i), Quad->GetLVetor(i), Quad->GetLZo(i), Pontos[1].data());
 			Polar3D(Quad->GetMAlpha2(i),Quad->GetMVetor2(i),Quad->GetMZo2(i),Pontos[2].data());
 			Polar3D(Quad->GetLAlpha2(i),Quad->GetLVetor2(i),Quad->GetLZo2(i),Pontos[3].data());
-			Modo=GL_LINE_LOOP;
+			Fechado=true;
 			break;
 		}
 		case FiguraElipse:{
@@ -1124,11 +1778,37 @@ void TDrawOpenGL::DesenhaSelecionada(){
 			break;
 		}
 	}
+}
+
+// a colecao em ciano e a figura escolhida no CBFiguras em amarelo, grossas e por
+// cima de tudo; a escolhida tem os pontos marcados. Chamada dentro da matriz da visao.
+void TDrawOpenGL::DesenhaSelecionada(){
+
+	std::vector<std::array<long double,3> > Pontos;
+	bool Fechado;
+
+	glDisable(GL_DEPTH_TEST);
+	glColor3f(0.0f,1.0f,1.0f);
+	glLineWidth(3);
+	for(size_t c=0;c<Colecao.size();c++){
+		ContornoFigura(Colecao[c],Pontos,Fechado);
+		glBegin(Fechado? GL_LINE_LOOP : GL_LINE_STRIP);
+		for(size_t k=0;k<Pontos.size();k++)
+			Vertice(Pontos[k].data());
+		glEnd();
+	}
+	glLineWidth(1);
+	glEnable(GL_DEPTH_TEST);
+
+	ItemFigura Item;
+	if(!FiguraSelecionada(Item))
+		return;
+	ContornoFigura(Item,Pontos,Fechado);
 
 	glDisable(GL_DEPTH_TEST);
 	glColor3f(1.0f,1.0f,0.4f);
 	glLineWidth(3);
-	glBegin(Modo);
+	glBegin(Fechado? GL_LINE_LOOP : GL_LINE_STRIP);
 	for(size_t k=0;k<Pontos.size();k++)
 		Vertice(Pontos[k].data());
 	glEnd();
@@ -1205,10 +1885,13 @@ void TDrawOpenGL::Desenha(){
 	DesenhaSelecionada();
 	DesenhaVertices();
 	DesenhaReferencia();
+	DesenhaEncaixe();
 	glPopMatrix();
 
-	if(!ChkPerspectiva->Checked)
+	if(!ChkPerspectiva->Checked){
 		DesenhaPrevia();
+		DesenhaRetanguloSelecao();
+	}
 
 	SwapBuffers(hdc);
 	wglMakeCurrent(DCAnterior,ContextoAnterior);
@@ -1233,6 +1916,8 @@ void __fastcall TDrawOpenGL::FormMouseDown(TObject *Sender, TMouseButton Button,
 	if(!NaAreaGL(Y))
 		return;
 
+	ActiveControl=NULL;					// sai dos campos de texto: o Ctrl+Z volta a ser do desenho
+
 	if(Button==mbRight){				// gira a visao arrastando
 		Girando=true;
 		UltimoX=X;
@@ -1250,9 +1935,11 @@ void __fastcall TDrawOpenGL::FormMouseDown(TObject *Sender, TMouseButton Button,
 	// editando vertices o clique escolhe um vertice e comeca o arraste: nao desenha
 	if(EditandoVertices()){
 		VerticeFigura V;
-		if(AchaVertice(X,Y,V)){
+		if(AchaVertice(X,Y,V,NULL,true)){
 			Arrastando=true;
 			VerticeAtivo=V;
+			EstadoAntesArraste=CapturaEstado();
+			ArrasteMoveu=false;
 			PosicaoVertice(V,InicioArraste);
 			long double s[3];
 			ParaTela(InicioArraste,s);
@@ -1262,13 +1949,22 @@ void __fastcall TDrawOpenGL::FormMouseDown(TObject *Sender, TMouseButton Button,
 			CursorDoMouse(crSizeAll);
 			Status(NomeVertice(V)+": arraste para mudar a posicao (Esc desfaz)");
 		}else
-			Status("Nenhum vertice aqui: clique em cima de um ponto");
+			Status("Nenhum vertice aqui: clique num ponto de uma figura selecionada");
 		Desenha();
 		return;
 	}
 
-	Cliques.push_back(TelaDoMouse(X,Y));
+	// selecionando figuras o clique marca e o arraste abre um retangulo: nao desenha
+	if(ChkSelecionar->Checked){
+		SelecionandoRet=true;
+		RetInicio=RetFim=TelaDoMouse(X,Y);
+		MouseCapture=true;
+		return;
+	}
 
+	Cliques.push_back(PontoComEncaixe(X,Y));
+
+	const EstadoDesenho Antes=CapturaEstado();
 	bool Gravou=false;
 	switch(RGFigura->ItemIndex){
 		case FiguraLinha:
@@ -1293,6 +1989,7 @@ void __fastcall TDrawOpenGL::FormMouseDown(TObject *Sender, TMouseButton Button,
 			Cliques.clear();
 	}
 	if(Gravou){
+		EmpilhaDesfazer(Antes);
 		Cliques.clear();
 		AtualizaListaFiguras();			// a figura nova entra no CBFiguras
 	}
@@ -1316,12 +2013,25 @@ void __fastcall TDrawOpenGL::FormMouseMove(TObject *Sender, TShiftState Shift, i
 
 	if(Arrastando){
 		// o vertice vai para o mouse, com a profundidade de quando foi clicado
-		Cursor=TelaDoMouse(X,Y);
+		// (ou para o vertice de outra figura em que encaixou)
+		Cursor=PontoComEncaixe(X,Y,&VerticeAtivo);
 		long double P[3];
-		DaTela(Cursor.h,Cursor.v,ProfArraste,P);
+		if(Cursor.TemMundo){
+			P[0]=Cursor.Mundo[0];
+			P[1]=Cursor.Mundo[1];
+			P[2]=Cursor.Mundo[2];
+		}else
+			DaTela(Cursor.h,Cursor.v,ProfArraste,P);
 		MoveVertice(VerticeAtivo,P);
+		ArrasteMoveu=true;
 		Status(NomeVertice(VerticeAtivo)+Format(":  Xo=%.1f  Yo=%.1f  Zo=%.1f",
 			ARRAYOFCONST(((double)P[0],(double)P[1],(double)P[2]))));
+		Desenha();
+		return;
+	}
+
+	if(SelecionandoRet){
+		RetFim=TelaDoMouse(X,Y);
 		Desenha();
 		return;
 	}
@@ -1337,11 +2047,11 @@ void __fastcall TDrawOpenGL::FormMouseMove(TObject *Sender, TShiftState Shift, i
 
 	// editando vertices: mao em cima de um vertice
 	if(EditandoVertices()){
-		TemVerticeSobMouse=AchaVertice(X,Y,VerticeSobMouse);
+		TemVerticeSobMouse=AchaVertice(X,Y,VerticeSobMouse,NULL,true);
 		CursorDoMouse(TemVerticeSobMouse? crHandPoint : crDefault);
 	}
 
-	Cursor=TelaDoMouse(X,Y);
+	Cursor=(EditandoVertices()||ChkSelecionar->Checked)? TelaDoMouse(X,Y) : PontoComEncaixe(X,Y);
 	if(!ChkPerspectiva->Checked){
 		long double P[3];
 		TelaParaMundo(Cursor,P);
@@ -1363,10 +2073,21 @@ void __fastcall TDrawOpenGL::FormMouseUp(TObject *Sender, TMouseButton Button, T
 	if(Button==mbRight)
 		Girando=false;
 
+	if((Button==mbLeft)&&SelecionandoRet){
+		SelecionandoRet=false;
+		MouseCapture=false;
+		RetFim=TelaDoMouse(X,Y);
+		TerminaSelecao(X,Y);
+		Desenha();
+	}
+
 	if((Button==mbLeft)&&Arrastando){
 		Arrastando=false;
 		MouseCapture=false;
 		CursorDoMouse(crHandPoint);
+		Cursor.TemMundo=false;
+		if(ArrasteMoveu)
+			EmpilhaDesfazer(EstadoAntesArraste);
 		AtualizaListaFiguras();			// a lista e o painel de edicao com a posicao nova
 		Status(NomeVertice(VerticeAtivo)+" movido");
 		Desenha();
@@ -1383,6 +2104,16 @@ void __fastcall TDrawOpenGL::FormMouseWheel(TObject *Sender, TShiftState Shift, 
 
 void __fastcall TDrawOpenGL::FormKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
 {
+	// Ctrl+Z e Ctrl+Y sao do desenho, menos enquanto se digita num campo de texto
+	if(Shift.Contains(ssCtrl)&&((Key=='Z')||(Key=='Y'))&&(dynamic_cast<TCustomEdit*>(ActiveControl)==NULL)){
+		if(Key=='Z')
+			Desfazer();
+		else
+			Refazer();
+		Key=0;
+		return;
+	}
+
 	if(Key!=VK_ESCAPE)
 		return;
 
@@ -1392,8 +2123,19 @@ void __fastcall TDrawOpenGL::FormKeyDown(TObject *Sender, WORD &Key, TShiftState
 		MouseCapture=false;
 		CursorDoMouse(crDefault);
 		AtualizaListaFiguras();
+		Cursor.TemMundo=false;
 		Status("Arraste desfeito");
 		Desenha();
+		return;
+	}
+	if(SelecionandoRet){		// Esc no retangulo: desiste dele
+		SelecionandoRet=false;
+		MouseCapture=false;
+		Desenha();
+		return;
+	}
+	if(ChkSelecionar->Checked&&(!Colecao.empty())){		// Esc selecionando: limpa a colecao
+		BtnLimparSelecaoClick(this);
 		return;
 	}
 	CancelaFigura();			// Esc desiste da figura em andamento
@@ -1534,14 +2276,42 @@ void __fastcall TDrawOpenGL::BtnDupAlphaClick(TObject *Sender)
 void __fastcall TDrawOpenGL::CBFigurasChange(TObject *Sender)
 {
 	ItemFigura Item;
-	if(FiguraSelecionada(Item))
+	if(FiguraSelecionada(Item)){
 		Status(CBFiguras->Items->Strings[CBFiguras->ItemIndex]);
+		if(ChkSelecionar->Checked)		// selecionando: a lista tambem marca e desmarca
+			AlternaNaColecao(Item);
+	}
 	CarregaEdicao();
+	Desenha();
+}
+
+void __fastcall TDrawOpenGL::ChkSelecionarClick(TObject *Sender)
+{
+	if(ChkSelecionar->Checked&&ChkEditarVertices->Checked)
+		ChkEditarVertices->Checked=false;		// o mouse faz uma coisa de cada vez
+	SelecionandoRet=false;
+	CursorDoMouse(crDefault);
+	CancelaFigura();
+	if(!ChkSelecionar->Checked)
+		Status("Desenho: o mouse volta a desenhar figuras");
+	else if(ChkPerspectiva->Checked)
+		Status("Desmarque Visualizar 3D para selecionar figuras");
+	else
+		Status("Clique nas figuras ou arraste um retangulo em volta delas");
+}
+
+void __fastcall TDrawOpenGL::BtnLimparSelecaoClick(TObject *Sender)
+{
+	Colecao.clear();
+	AtualizaColecao();
+	Status("Selecao limpa");
 	Desenha();
 }
 
 void __fastcall TDrawOpenGL::ChkEditarVerticesClick(TObject *Sender)
 {
+	if(ChkEditarVertices->Checked&&ChkSelecionar->Checked)
+		ChkSelecionar->Checked=false;			// o mouse faz uma coisa de cada vez
 	Arrastando=false;
 	TemVerticeSobMouse=false;
 	CursorDoMouse(crDefault);
@@ -1550,16 +2320,33 @@ void __fastcall TDrawOpenGL::ChkEditarVerticesClick(TObject *Sender)
 	else if(ChkPerspectiva->Checked)
 		Status("Desmarque Visualizar 3D para editar os vertices");
 	else
-		Status("Editar vertices: clique num ponto e arraste para mudar a posicao");
+		Status("Editar vertices: aparecem so os das figuras selecionadas. Arraste um ponto para mover.");
 	CancelaFigura();
 }
 
 void __fastcall TDrawOpenGL::BtnAplicarClick(TObject *Sender)
 {
+	const EstadoDesenho Antes=CapturaEstado();
 	if(!AplicaEdicao())
 		return;
+	EmpilhaDesfazer(Antes);
 	AtualizaListaFiguras();			// o texto da lista e a edicao com os valores novos
 	Desenha();
+}
+
+void __fastcall TDrawOpenGL::BtnDesfazerClick(TObject *Sender)
+{
+	Desfazer();
+}
+
+void __fastcall TDrawOpenGL::BtnRefazerClick(TObject *Sender)
+{
+	Refazer();
+}
+
+void __fastcall TDrawOpenGL::BtnExtrudarClick(TObject *Sender)
+{
+	Extruda();
 }
 
 void __fastcall TDrawOpenGL::BtnRecarregarClick(TObject *Sender)
